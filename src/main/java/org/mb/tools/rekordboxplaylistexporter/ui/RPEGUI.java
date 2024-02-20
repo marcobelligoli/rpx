@@ -17,6 +17,7 @@ public class RPEGUI extends JFrame {
     public RPEGUI() {
         rekordboxPlaylistParamList = new ArrayList<>();
         setTitle("Rekordbox Playlist Exporter");
+        setIconImage(new ImageIcon("src/main/resources/rpe_logo500.png").getImage());
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setSize(500, 200);
 
