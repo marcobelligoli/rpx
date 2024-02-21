@@ -132,7 +132,7 @@ public class FileUtils {
      */
     public static void changeFileEncoding(String filePath) {
         String inputEncoding = getFileEncoding(new File(filePath));
-        Charset inputCharset = null;
+        Charset inputCharset = StandardCharsets.UTF_8;
         if (inputEncoding != null && inputEncoding.equals("UTF-16LE"))
             inputCharset = StandardCharsets.UTF_16LE;
         List<String> lines = FileUtils.readLinesFromFile(filePath, inputCharset);
@@ -154,7 +154,7 @@ public class FileUtils {
      * @return Encoding found (null if error occurs)
      */
     public static String getFileEncoding(File file) {
-        try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file))) {
+        try (BufferedInputStream bis = new BufferedInputStream(Files.newInputStream(file.toPath()))) {
             byte[] buffer = new byte[4096];
             UniversalDetector detector = new UniversalDetector(null);
 

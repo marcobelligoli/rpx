@@ -4,7 +4,13 @@ Java Tool for create folders with files from a txt playlist exported from Rekord
 
 ## Download
 
-Download the executable from [this link](http:......).
+Download the .exe
+from [this link](https://drive.google.com/file/d/1FAfyUpdaBxdLwReUU0Q3W2rNnP3ONd6V/view?usp=sharing).
+
+## System requirements
+
+You need JDK 17 to run this software. Suggested version is Temurin distribution (used for development).
+You can download it [here](https://adoptium.net/temurin/releases/?version=17).
 
 ## Usage
 
