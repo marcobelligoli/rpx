@@ -6,7 +6,7 @@
 
     <groupId>org.mb.tools</groupId>
     <artifactId>rekordbox-playlist-exporter</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2-SNAPSHOT</version>
 
     <properties>
         <commons-io.version>2.15.1</commons-io.version>
