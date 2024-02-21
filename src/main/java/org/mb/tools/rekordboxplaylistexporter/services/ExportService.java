@@ -8,6 +8,7 @@ import org.mb.tools.rekordboxplaylistexporter.utils.LogUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -45,7 +46,9 @@ public class ExportService {
                                        String outputFolderPath) throws IOException {
         List<RekordboxSong> songs = new ArrayList<>();
         FileUtils.changeFileEncoding(playlistTxtFilePath);
-        List<String> playlistLines = FileUtils.readLinesFromFile(playlistTxtFilePath, null);
+        String playlistFileEncoding = FileUtils.getFileEncoding(new File(playlistTxtFilePath));
+        List<String> playlistLines = FileUtils.readLinesFromFile(playlistTxtFilePath, playlistFileEncoding != null ?
+                Charset.forName(playlistFileEncoding) : null);
 
         // remove headers
         playlistLines.remove(0);
