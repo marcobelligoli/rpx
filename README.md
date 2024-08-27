@@ -5,8 +5,7 @@ and more!
 
 ## Download
 
-Download the .exe
-from [this link](https://drive.google.com/file/d/1FAfyUpdaBxdLwReUU0Q3W2rNnP3ONd6V/view?usp=sharing).
+Download the [.exe](https://drive.google.com/file/d/1uzTAcDAFcc-TBNREAa6dBSeSgZHN3HeF/view?usp=sharing).
 
 ## System requirements
 
