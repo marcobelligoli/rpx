@@ -1,7 +1,8 @@
-package org.mb.tools.rekordboxplaylistexporter.ui;
+package org.mb.tools.rpx.ui;
 
-import org.mb.tools.rekordboxplaylistexporter.models.RekordboxPlaylistParam;
-import org.mb.tools.rekordboxplaylistexporter.services.ExportService;
+import org.mb.tools.rpx.models.RekordboxPlaylistParam;
+import org.mb.tools.rpx.services.ExportService;
+import org.mb.tools.rpx.services.ExportServiceTxtImpl;
 
 import javax.swing.*;
 import java.awt.*;
@@ -9,14 +10,17 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RPEGUI extends JFrame {
+/**
+ * Application GUI
+ */
+public class RPXGUI extends JFrame {
 
     private final JPanel panel;
     private List<RekordboxPlaylistParam> rekordboxPlaylistParamList;
 
-    public RPEGUI() {
+    public RPXGUI() {
         rekordboxPlaylistParamList = new ArrayList<>();
-        setTitle("Rekordbox Playlist Exporter");
+        setTitle("RPX - Rekordbox Playlist Exporter");
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setSize(500, 200);
 
@@ -29,25 +33,25 @@ public class RPEGUI extends JFrame {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
 
-        JButton selectFilesButton = new JButton("SELECT ALL PLAYLIST FILES TO EXPORT");
+        JButton selectTxtFilesButton = new JButton("SELECT ALL TXT PLAYLIST FILES TO EXPORT");
         gbc.gridx = 1;
         gbc.gridy = 0;
-        panel.add(selectFilesButton, gbc);
+        panel.add(selectTxtFilesButton, gbc);
 
-        selectFilesButton.addActionListener(e -> {
+        selectTxtFilesButton.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setMultiSelectionEnabled(true);
             int returnValue = fileChooser.showOpenDialog(null);
             if (returnValue == JFileChooser.APPROVE_OPTION) {
                 File[] selectedFiles = fileChooser.getSelectedFiles();
-                reloadPanel(selectedFiles);
+                reloadPanel(selectedFiles, "txt");
             }
         });
 
         add(panel);
     }
 
-    private void reloadPanel(File[] selectedFiles) {
+    private void reloadPanel(File[] selectedFiles, String inputFormat) {
         panel.removeAll();
 
         GridBagConstraints gbc = new GridBagConstraints();
@@ -75,7 +79,7 @@ public class RPEGUI extends JFrame {
             checkBoxes[i] = checkBox;
         }
 
-        JButton exportButton = getExportButton(selectedFiles, filePathFields, checkBoxes);
+        JButton exportButton = getExportButton(selectedFiles, filePathFields, checkBoxes, "txt");
         gbc.gridx = 0;
         gbc.gridy = selectedFiles.length + 1;
         gbc.gridwidth = 2;
@@ -84,7 +88,8 @@ public class RPEGUI extends JFrame {
         pack();
     }
 
-    private JButton getExportButton(File[] selectedFiles, JTextField[] filePathFields, JCheckBox[] checkBoxes) {
+    private JButton getExportButton(File[] selectedFiles, JTextField[] filePathFields, JCheckBox[] checkBoxes,
+                                    String inputFormat) {
         JButton exportButton = new JButton("EXPORT SELECTED PLAYLIST");
         exportButton.addActionListener(e -> {
             for (int i = 0; i < selectedFiles.length; i++) {
@@ -94,7 +99,13 @@ public class RPEGUI extends JFrame {
                 rekordboxPlaylistParamList.add(param);
             }
             try {
-                ExportService exportService = new ExportService();
+                ExportService exportService;
+                switch (inputFormat) {
+                    // gestire qui altri formati (es. M3U8)
+                    default:
+                        exportService = new ExportServiceTxtImpl();
+                        break;
+                }
                 exportService.exportPlaylists(rekordboxPlaylistParamList);
                 JOptionPane.showMessageDialog(null, "Operation successfully done!", "Success",
                         JOptionPane.INFORMATION_MESSAGE);
