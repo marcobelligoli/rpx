@@ -17,6 +17,8 @@ import java.util.logging.Logger;
 
 public class ExportService {
 
+    private static final String[] AUDIO_FORMATS = {".mp3", ".wav", ".flac", ".aac", ".ogg", ".wma", ".m4a"};
+
     private static final Logger logger = Logger.getLogger(ExportService.class.getName());
 
     public void exportPlaylists(List<RekordboxPlaylistParam> playlistsToExport) {
@@ -158,7 +160,7 @@ public class ExportService {
 
         int totalCopiedSongs = 0;
         for (File song : copiedSongs) {
-            if (song.getName().toLowerCase(Locale.ROOT).endsWith(".mp3"))
+            if (isAudioFile(song.getName()))
                 totalCopiedSongs++;
         }
 
@@ -167,5 +169,18 @@ public class ExportService {
         } else {
             printMessage("All files copied in folder.");
         }
+    }
+
+    private static boolean isAudioFile(String songFileName) {
+        boolean isAudioFile = false;
+
+        for (String format : AUDIO_FORMATS) {
+            if (songFileName.toLowerCase(Locale.ROOT).endsWith(format)) {
+                isAudioFile = true;
+                break;
+            }
+        }
+
+        return isAudioFile;
     }
 }
