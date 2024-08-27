@@ -1,4 +1,4 @@
-package org.mb.tools.rekordboxplaylistexporter.utils;
+package org.mb.tools.rpx.utils;
 
 import org.mozilla.universalchardet.UniversalDetector;
 

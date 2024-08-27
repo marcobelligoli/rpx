@@ -1,12 +1,12 @@
-package org.mb.tools.rekordboxplaylistexporter.exceptions;
+package org.mb.tools.rpx.exceptions;
 
-public class RPEException extends RuntimeException {
+public class RPXException extends RuntimeException {
 
-    public RPEException(Throwable cause) {
+    public RPXException(Throwable cause) {
         super(cause);
     }
 
-    public RPEException(int playlistFileLines, int totalCopiedSongs) {
+    public RPXException(int playlistFileLines, int totalCopiedSongs) {
         super(String.format("ATTENTION: number of song in txt [%d] is different from total file copied [%d]. " +
                         "Errors occurred during file copy, please retry later.",
                 playlistFileLines, totalCopiedSongs));

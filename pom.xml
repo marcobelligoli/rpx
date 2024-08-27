@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.mb.tools</groupId>
-    <artifactId>rekordbox-playlist-exporter</artifactId>
-    <version>0.0.1</version>
+    <artifactId>rpx</artifactId>
+    <version>0.1.0</version>
 
     <properties>
         <commons-io.version>2.15.1</commons-io.version>
@@ -54,7 +54,7 @@
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        org.mb.tools.rekordboxplaylistexporter.RekordboxPlaylistExporter
+                                        org.mb.tools.rpx.RPX
                                     </mainClass>
                                 </manifest>
                             </archive>

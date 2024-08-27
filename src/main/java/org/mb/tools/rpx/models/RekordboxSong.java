@@ -1,4 +1,4 @@
-package org.mb.tools.rekordboxplaylistexporter.models;
+package org.mb.tools.rpx.models;
 
 import lombok.*;
 

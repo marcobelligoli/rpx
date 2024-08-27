@@ -1,10 +1,7 @@
-package org.mb.tools.rekordboxplaylistexporter.services;
+package org.mb.tools.rpx.services;
 
-import org.mb.tools.rekordboxplaylistexporter.exceptions.RPEException;
-import org.mb.tools.rekordboxplaylistexporter.models.RekordboxPlaylistParam;
-import org.mb.tools.rekordboxplaylistexporter.models.RekordboxSong;
-import org.mb.tools.rekordboxplaylistexporter.utils.FileUtils;
-import org.mb.tools.rekordboxplaylistexporter.utils.LogUtils;
+import org.mb.tools.rpx.models.RekordboxSong;
+import org.mb.tools.rpx.utils.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,42 +9,22 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.logging.Logger;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
-public class ExportService {
+/**
+ * Implementation of Export Service for txt files
+ */
+public class ExportServiceTxtImpl extends ExportService {
 
-    private static final Logger logger = Logger.getLogger(ExportService.class.getName());
-
-    public void exportPlaylists(List<RekordboxPlaylistParam> playlistsToExport) {
-        try {
-            String desktopPath = FileUtils.getDesktopPath();
-
-            for (RekordboxPlaylistParam rekordboxPlaylistParam : playlistsToExport) {
-
-                String playlistName = rekordboxPlaylistParam.getPlaylistPath()
-                        .split("\\\\")[rekordboxPlaylistParam.getPlaylistPath().split("\\\\").length - 1]
-                        .split("\\.")[0];
-                String outputFolderPath = desktopPath + "\\" + playlistName;
-
-                exportPlaylist(playlistName, rekordboxPlaylistParam.getPlaylistPath(),
-                        rekordboxPlaylistParam.isMaintainPlaylistOrder(), outputFolderPath);
-
-                printMessage("Operation completed for playlist " + playlistName + "! Output: " +
-                        outputFolderPath);
-            }
-            printMessage("Operation completed for " + playlistsToExport.size() + " playlist");
-        } catch (Exception e) {
-            throw new RPEException(e);
-        }
-    }
-
-    private static void exportPlaylist(String playlistName, String playlistTxtFilePath, boolean maintainOrder,
-                                       String outputFolderPath) throws IOException {
+    @Override
+    protected void exportPlaylist(String playlistName, String playlistFilePath, boolean maintainOrder,
+                                  String outputFolderPath) throws IOException {
         List<RekordboxSong> songs = new ArrayList<>();
-        FileUtils.changeFileEncoding(playlistTxtFilePath);
-        String playlistFileEncoding = FileUtils.getFileEncoding(new File(playlistTxtFilePath));
-        List<String> playlistLines = FileUtils.readLinesFromFile(playlistTxtFilePath, playlistFileEncoding != null ?
+        FileUtils.changeFileEncoding(playlistFilePath);
+        String playlistFileEncoding = FileUtils.getFileEncoding(new File(playlistFilePath));
+        List<String> playlistLines = FileUtils.readLinesFromFile(playlistFilePath, playlistFileEncoding != null ?
                 Charset.forName(playlistFileEncoding) : null);
 
         // remove headers
@@ -78,7 +55,7 @@ public class ExportService {
         int playlistFileLines = songs.size();
 
         // copy list of RekordboxSong in final folder
-        printMessage(String.format("Got %d songs from playlist %s", songs.size(), playlistName));
+        logInfo(String.format("Got %d songs from playlist %s", songs.size(), playlistName));
 
         // if not present, create it
         File playlistFolder = FileUtils.createFolderIfNotExists(outputFolderPath);
@@ -87,7 +64,7 @@ public class ExportService {
             String windowsPath = song.getFilePath().replace("/", "\\");
             File songFile = new File(windowsPath);
             if (songFile.exists()) {
-                printMessage(String.format("Found file [%s]; copying...", songFile.getAbsolutePath()));
+                logInfo(String.format("Found file [%s]; copying...", songFile.getAbsolutePath()));
                 if (maintainOrder) {
                     String newName = song.getTrackNumber() + " - " + songFile.getName();
                     FileUtils.copyAndRenameFile(songFile, playlistFolder, newName);
@@ -95,17 +72,13 @@ public class ExportService {
                     FileUtils.copyFile(songFile, playlistFolder);
                 }
             } else {
-                printMessage(String.format("File [%s] not found", songFile.getAbsolutePath()));
+                logInfo(String.format("File [%s] not found", songFile.getAbsolutePath()));
             }
         }
 
         // check on copied files
         assert playlistFolder != null;
         checkSongsNumber(playlistFileLines, playlistFolder);
-    }
-
-    private static void printMessage(String message) {
-        LogUtils.info(logger, message);
     }
 
     private static List<String> getCleanedLineItems(String line, String regexForSplit) {
@@ -118,19 +91,19 @@ public class ExportService {
         return cleanedFields;
     }
 
+    private static Double convertDouble(String doubleString) {
+        String result = doubleString.replace(",", ".");
+        return Double.parseDouble(result);
+    }
+
     private static Date convertStringToDate(String dateString) {
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         try {
             return dateFormat.parse(dateString);
         } catch (ParseException e) {
-            LogUtils.error(logger, e.getMessage());
+            logError(e.getMessage());
             return null;
         }
-    }
-
-    private static Double convertDouble(String doubleString) {
-        String result = doubleString.replace(",", ".");
-        return Double.parseDouble(result);
     }
 
     private static String fixDoubleUTF8Encoding(String s) {
@@ -151,21 +124,5 @@ public class ExportService {
             }
         }
         return false;
-    }
-
-    private static void checkSongsNumber(int playlistFileLines, File playlistFolder) {
-        File[] copiedSongs = Objects.requireNonNull(playlistFolder.listFiles());
-
-        int totalCopiedSongs = 0;
-        for (File song : copiedSongs) {
-            if (song.getName().toLowerCase(Locale.ROOT).endsWith(".mp3"))
-                totalCopiedSongs++;
-        }
-
-        if (playlistFileLines != totalCopiedSongs) {
-            throw new RPEException(playlistFileLines, totalCopiedSongs);
-        } else {
-            printMessage("All files copied in folder.");
-        }
     }
 }
