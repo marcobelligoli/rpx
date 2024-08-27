@@ -6,7 +6,7 @@
 
     <groupId>org.mb.tools</groupId>
     <artifactId>rpx</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.1.0</version>
 
     <properties>
         <commons-io.version>2.15.1</commons-io.version>
