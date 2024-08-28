@@ -1,10 +1,9 @@
-package org.mb.tools.rpx.services;
+package org.mb.tools.rpx.services.export;
 
 import org.mb.tools.rpx.models.RekordboxSong;
 import org.mb.tools.rpx.utils.FileUtils;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
@@ -19,8 +18,7 @@ import java.util.List;
 public class ExportServiceTxtImpl extends ExportService {
 
     @Override
-    protected void exportPlaylist(String playlistName, String playlistFilePath, boolean maintainOrder,
-                                  String outputFolderPath) throws IOException {
+    protected List<RekordboxSong> getRekordboxSongs(String playlistFilePath) {
         List<RekordboxSong> songs = new ArrayList<>();
         FileUtils.changeFileEncoding(playlistFilePath);
         String playlistFileEncoding = FileUtils.getFileEncoding(new File(playlistFilePath));
@@ -50,35 +48,7 @@ public class ExportServiceTxtImpl extends ExportService {
                 songs.add(rekordboxSong);
             }
         }
-
-        // total file lines without headers
-        int playlistFileLines = songs.size();
-
-        // copy list of RekordboxSong in final folder
-        logInfo(String.format("Got %d songs from playlist %s", songs.size(), playlistName));
-
-        // if not present, create it
-        File playlistFolder = FileUtils.createFolderIfNotExists(outputFolderPath);
-
-        for (RekordboxSong song : songs) {
-            String windowsPath = song.getFilePath().replace("/", "\\");
-            File songFile = new File(windowsPath);
-            if (songFile.exists()) {
-                logInfo(String.format("Found file [%s]; copying...", songFile.getAbsolutePath()));
-                if (maintainOrder) {
-                    String newName = song.getTrackNumber() + " - " + songFile.getName();
-                    FileUtils.copyAndRenameFile(songFile, playlistFolder, newName);
-                } else {
-                    FileUtils.copyFile(songFile, playlistFolder);
-                }
-            } else {
-                logInfo(String.format("File [%s] not found", songFile.getAbsolutePath()));
-            }
-        }
-
-        // check on copied files
-        assert playlistFolder != null;
-        checkSongsNumber(playlistFileLines, playlistFolder);
+        return songs;
     }
 
     private static List<String> getCleanedLineItems(String line, String regexForSplit) {
