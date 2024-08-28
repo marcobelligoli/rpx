@@ -1,7 +1,8 @@
-package org.mb.tools.rpx.services;
+package org.mb.tools.rpx.services.export;
 
 import org.mb.tools.rpx.exceptions.RPXException;
 import org.mb.tools.rpx.models.RekordboxPlaylistParam;
+import org.mb.tools.rpx.models.RekordboxSong;
 import org.mb.tools.rpx.utils.FileUtils;
 import org.mb.tools.rpx.utils.LogUtils;
 
@@ -49,17 +50,47 @@ public abstract class ExportService {
         }
     }
 
+    private void exportPlaylist(String playlistName, String playlistFilePath, boolean maintainOrder,
+                                String outputFolderPath) throws IOException {
+        List<RekordboxSong> songs = getRekordboxSongs(playlistFilePath);
+
+        // total file lines without headers
+        int playlistFileLines = songs.size();
+
+        // copy list of RekordboxSong in final folder
+        logInfo(String.format("Got %d songs from playlist %s", songs.size(), playlistName));
+
+        // if not present, create it
+        File playlistFolder = FileUtils.createFolderIfNotExists(outputFolderPath);
+
+        for (RekordboxSong song : songs) {
+            String windowsPath = song.getFilePath().replace("/", "\\");
+            File songFile = new File(windowsPath);
+            if (songFile.exists()) {
+                logInfo(String.format("Found file [%s]; copying...", songFile.getAbsolutePath()));
+                if (maintainOrder) {
+                    String newName = song.getTrackNumber() + " - " + songFile.getName();
+                    FileUtils.copyAndRenameFile(songFile, playlistFolder, newName);
+                } else {
+                    FileUtils.copyFile(songFile, playlistFolder);
+                }
+            } else {
+                logInfo(String.format("File [%s] not found", songFile.getAbsolutePath()));
+            }
+        }
+
+        // check on copied files
+        assert playlistFolder != null;
+        checkSongsNumber(playlistFileLines, playlistFolder);
+    }
+
     /**
-     * Works on single playlist file and export content to folder
+     * Gets a list of Rekordbox songs from playlist file
      *
-     * @param playlistName     Name of playlist to export
-     * @param playlistFilePath File path of playlist to export
-     * @param maintainOrder    True if maintain tracks order, false otherwise
-     * @param outputFolderPath Playlist output folder path
-     * @throws IOException IOException
+     * @param playlistFilePath Path of playlist file (txt,...)
+     * @return List of Rekordbox songs retrieved
      */
-    protected abstract void exportPlaylist(String playlistName, String playlistFilePath, boolean maintainOrder,
-                                           String outputFolderPath) throws IOException;
+    protected abstract List<RekordboxSong> getRekordboxSongs(String playlistFilePath);
 
     /**
      * Logs info
