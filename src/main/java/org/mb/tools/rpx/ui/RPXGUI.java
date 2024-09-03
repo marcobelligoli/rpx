@@ -1,8 +1,8 @@
 package org.mb.tools.rpx.ui;
 
-import org.mb.tools.rpx.models.RekordboxPlaylistParam;
-import org.mb.tools.rpx.services.export.ExportService;
-import org.mb.tools.rpx.services.export.ExportServiceTxtImpl;
+import org.mb.tools.rpx.model.RekordboxPlaylistParam;
+import org.mb.tools.rpx.service.export.ExportService;
+import org.mb.tools.rpx.service.export.ExportServiceTxtImpl;
 
 import javax.swing.*;
 import java.awt.*;

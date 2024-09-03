@@ -1,4 +1,4 @@
-package org.mb.tools.rpx.exceptions;
+package org.mb.tools.rpx.exception;
 
 public class RPXException extends RuntimeException {
 

@@ -1,8 +1,8 @@
-package org.mb.tools.rpx.services.export;
+package org.mb.tools.rpx.service.export;
 
-import org.mb.tools.rpx.exceptions.RPXException;
-import org.mb.tools.rpx.models.RekordboxPlaylistParam;
-import org.mb.tools.rpx.models.RekordboxSong;
+import org.mb.tools.rpx.exception.RPXException;
+import org.mb.tools.rpx.model.RekordboxPlaylistParam;
+import org.mb.tools.rpx.model.RekordboxSong;
 import org.mb.tools.rpx.utils.FileUtils;
 import org.mb.tools.rpx.utils.LogUtils;
 
