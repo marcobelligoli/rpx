@@ -1,6 +1,6 @@
-package org.mb.tools.rpx.services.export;
+package org.mb.tools.rpx.service.export;
 
-import org.mb.tools.rpx.models.RekordboxSong;
+import org.mb.tools.rpx.model.RekordboxSong;
 import org.mb.tools.rpx.utils.FileUtils;
 
 import java.io.File;

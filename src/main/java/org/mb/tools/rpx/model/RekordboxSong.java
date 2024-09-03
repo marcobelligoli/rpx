@@ -1,4 +1,4 @@
-package org.mb.tools.rpx.models;
+package org.mb.tools.rpx.model;
 
 import lombok.*;
 
