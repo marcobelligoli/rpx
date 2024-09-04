@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * Implementation of Export Service for txt files
  */
-public class ExportServiceTxtImpl extends ExportService {
+public class ExportServiceTxtImpl extends AbstractExportService {
 
     @Override
     protected List<RekordboxSong> getRekordboxSongs(String playlistFilePath) {
