@@ -5,6 +5,7 @@ import org.mb.tools.rpx.model.RekordboxPlaylistParam;
 import org.mb.tools.rpx.model.RekordboxSong;
 import org.mb.tools.rpx.utils.FileUtils;
 import org.mb.tools.rpx.utils.LogUtils;
+import org.mb.tools.rpx.utils.OsUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,13 +26,11 @@ public abstract class AbstractExportService implements ExportService {
     @Override
     public void exportPlaylists(List<RekordboxPlaylistParam> playlistsToExport) {
         try {
-            String desktopPath = FileUtils.getDesktopPath();
+            String desktopPath = OsUtils.getDesktopPath();
 
             for (RekordboxPlaylistParam rekordboxPlaylistParam : playlistsToExport) {
 
-                String playlistName = rekordboxPlaylistParam.getPlaylistPath()
-                        .split("\\\\")[rekordboxPlaylistParam.getPlaylistPath().split("\\\\").length - 1]
-                        .split("\\.")[0];
+                String playlistName = getPlaylistName(rekordboxPlaylistParam);
                 String outputFolderPath = desktopPath + "\\" + playlistName;
 
                 exportPlaylist(playlistName, rekordboxPlaylistParam.getPlaylistPath(),
@@ -44,6 +43,20 @@ public abstract class AbstractExportService implements ExportService {
         } catch (Exception e) {
             throw new RPXException(e);
         }
+    }
+
+    private static String getPlaylistName(RekordboxPlaylistParam rekordboxPlaylistParam) {
+        String playlistName;
+        if (rekordboxPlaylistParam.getPlaylistPath().startsWith("/")) {
+            playlistName = rekordboxPlaylistParam.getPlaylistPath()
+                    .split("/")[rekordboxPlaylistParam.getPlaylistPath().split("/").length - 1]
+                    .split("\\.")[0];
+        } else {
+            playlistName = rekordboxPlaylistParam.getPlaylistPath()
+                    .split("\\\\")[rekordboxPlaylistParam.getPlaylistPath().split("\\\\").length - 1]
+                    .split("\\.")[0];
+        }
+        return playlistName;
     }
 
     private void exportPlaylist(String playlistName, String playlistFilePath, boolean maintainOrder,

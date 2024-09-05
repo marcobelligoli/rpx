@@ -1,0 +1,2 @@
+#	Illustrazione	Titolo Brano	BPM	Anno	Artista	Tag personale	Album	Genere	Classifica	Tempo	Posizione	Tonalità	Data di aggiunta
+1		ROMANCE	88,00	0	Fred De Palma		ROMANCE		     	03:00	test.txt		2023-07-16
