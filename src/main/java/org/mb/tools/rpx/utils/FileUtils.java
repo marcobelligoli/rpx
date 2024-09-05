@@ -2,7 +2,6 @@ package org.mb.tools.rpx.utils;
 
 import org.mozilla.universalchardet.UniversalDetector;
 
-import javax.swing.filechooser.FileSystemView;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -26,22 +25,7 @@ public class FileUtils {
     }
 
     /**
-     * Get the Desktop path
-     *
-     * @return Desktop path
-     */
-    public static String getDesktopPath() {
-        // FileSystemView
-        FileSystemView fileSystemView = FileSystemView.getFileSystemView();
-
-        // Desktop directory
-        File desktopDirectory = fileSystemView.getHomeDirectory();
-
-        return desktopDirectory.getAbsolutePath();
-    }
-
-    /**
-     * Read all text file lines
+     * Reads all text file lines
      *
      * @param filePath      Path of file to read
      * @param inputEncoding Input file encoding (optional)
@@ -63,7 +47,7 @@ public class FileUtils {
     }
 
     /**
-     * Create a folder (if not exist)
+     * Creates a folder (if not exist)
      *
      * @param folderPath Directory to create
      * @return Directory created (null if any errors occurred)
@@ -86,7 +70,7 @@ public class FileUtils {
     }
 
     /**
-     * Copy a file changing the name
+     * Copies a file changing the name
      *
      * @param sourceFile        File to copy
      * @param destinationFolder Destination folder
@@ -106,7 +90,7 @@ public class FileUtils {
     }
 
     /**
-     * Copy a file
+     * Copies a file
      *
      * @param sourceFile           File to copy
      * @param destinationDirectory Destination folder
@@ -126,7 +110,7 @@ public class FileUtils {
     }
 
     /**
-     * Change file encoding to UTF-8
+     * Changes file encoding to UTF-8
      *
      * @param filePath file to change encoding
      */
@@ -148,7 +132,7 @@ public class FileUtils {
     }
 
     /**
-     * Get file encoding
+     * Gets file encoding
      *
      * @param file File to analyze
      * @return Encoding found (null if error occurs)
