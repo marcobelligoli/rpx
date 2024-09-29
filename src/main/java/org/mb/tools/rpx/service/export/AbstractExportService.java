@@ -31,7 +31,7 @@ public abstract class AbstractExportService implements ExportService {
             for (RekordboxPlaylistParam rekordboxPlaylistParam : playlistsToExport) {
 
                 String playlistName = getPlaylistName(rekordboxPlaylistParam);
-                String outputFolderPath = desktopPath + "\\" + playlistName;
+                String outputFolderPath = getOutputFolderPath(desktopPath, playlistName);
 
                 exportPlaylist(playlistName, rekordboxPlaylistParam.getPlaylistPath(),
                         rekordboxPlaylistParam.isMaintainPlaylistOrder(), outputFolderPath);
@@ -45,9 +45,18 @@ public abstract class AbstractExportService implements ExportService {
         }
     }
 
+    private static String getOutputFolderPath(String desktopPath, String playlistName) {
+        if (OsUtils.isWindows()) {
+            return desktopPath + "\\" + playlistName;
+        } else {
+            return desktopPath + "/" + playlistName;
+        }
+    }
+
     private static String getPlaylistName(RekordboxPlaylistParam rekordboxPlaylistParam) {
         String playlistName;
-        if (rekordboxPlaylistParam.getPlaylistPath().startsWith("/")) {
+
+        if (rekordboxPlaylistParam.getPlaylistPath().startsWith("/") || !OsUtils.isWindows()) {
             playlistName = rekordboxPlaylistParam.getPlaylistPath()
                     .split("/")[rekordboxPlaylistParam.getPlaylistPath().split("/").length - 1]
                     .split("\\.")[0];
@@ -73,8 +82,8 @@ public abstract class AbstractExportService implements ExportService {
         File playlistFolder = FileUtils.createFolderIfNotExists(outputFolderPath);
 
         for (RekordboxSong song : songs) {
-            String windowsPath = song.getFilePath().replace("/", "\\");
-            File songFile = new File(windowsPath);
+            String path = getPath(song);
+            File songFile = new File(path);
             if (songFile.exists()) {
                 logInfo(String.format("Found file [%s]; copying...", songFile.getAbsolutePath()));
                 if (maintainOrder) {
@@ -91,6 +100,14 @@ public abstract class AbstractExportService implements ExportService {
         // check on copied files
         assert playlistFolder != null;
         checkSongsNumber(playlistFileLines, playlistFolder);
+    }
+
+    private static String getPath(RekordboxSong song) {
+        if (OsUtils.isWindows()) {
+            return song.getFilePath().replace("/", "\\");
+        } else {
+            return song.getFilePath().replace("\\", "/");
+        }
     }
 
     /**
