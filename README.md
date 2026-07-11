@@ -5,7 +5,8 @@ Rekordbox, along with additional functionalities.
 
 ## Download
 
-The executable version of the software can be downloaded from the project releases when available.
+The executable version of the software can be downloaded from
+the [project releases](https://github.com/marcobelligoli/rpx/releases) when available.
 Each tagged build produces downloadable artifacts for Windows, macOS, Linux, and a runnable JAR.
 
 ## System Requirements
@@ -69,7 +70,8 @@ mvn -B clean verify
 
 ## Release Artifacts
 
-Pushing a tag triggers the release packaging workflow. The workflow first runs build and tests, then creates downloadable artifacts for each supported platform using `jpackage`:
+Pushing a tag triggers the release packaging workflow. The workflow first runs build and tests, then creates
+downloadable artifacts for each supported platform using `jpackage`:
 
 - Windows: ZIP containing the RPX app image with `RPX.exe`
 - macOS: ZIP containing `RPX.app`
@@ -83,7 +85,8 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-After the workflow completes, the artifacts are available from the GitHub Actions run and can be attached manually to a GitHub Release.
+After the workflow completes, the artifacts are available from the GitHub Actions run and can be attached manually to a
+GitHub Release.
 
 ## Support
 
