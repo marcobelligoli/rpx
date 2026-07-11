@@ -1,0 +1,111 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build and test
+        run: mvn -B clean verify
+
+      - name: Upload runnable jar
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: RPX-${{ github.ref_name }}-jar
+          path: target/rpx-jar-with-dependencies.jar
+          if-no-files-found: error
+
+  package:
+    name: Package ${{ matrix.platform }}
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-x64
+          - os: macos-latest
+            platform: macos
+          - os: ubuntu-latest
+            platform: linux-x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build jar
+        run: mvn -B clean package
+
+      - name: Create app image
+        run: >-
+          jpackage
+          --type app-image
+          --name RPX
+          --input target
+          --main-jar rpx-jar-with-dependencies.jar
+          --main-class org.mb.tools.rpx.RPX
+          --dest dist
+
+      - name: Archive Windows app
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          Compress-Archive -Path dist\RPX -DestinationPath artifacts\RPX-${{ github.ref_name }}-${{ matrix.platform }}.zip
+
+      - name: Archive macOS app
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p artifacts
+          ditto -c -k --sequesterRsrc --keepParent dist/RPX.app artifacts/RPX-${{ github.ref_name }}-${{ matrix.platform }}.zip
+
+      - name: Archive Linux app
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p artifacts
+          tar -czf artifacts/RPX-${{ github.ref_name }}-${{ matrix.platform }}.tar.gz -C dist RPX
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RPX-${{ github.ref_name }}-${{ matrix.platform }}
+          path: artifacts/*
+          if-no-files-found: error
