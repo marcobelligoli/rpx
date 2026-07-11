@@ -10,8 +10,6 @@ public class OsUtils {
     /**
      * -- SETTER --
      * Sets the system property provider. For testing purposes.
-     *
-     * @param provider The system property provider.
      */
     @Setter
     private static SystemPropertyProvider systemPropertyProvider = System::getProperty;
