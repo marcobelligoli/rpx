@@ -26,12 +26,14 @@ There is no Maven wrapper — a local `mvn` and JDK 17+ are required.
 Thread. All application logic hangs off the export service; there is no CLI mode.
 
 **Export pipeline (template method).** `ExportService` (interface) → `AbstractExportService` (owns the whole
-orchestration: resolve output folder, copy files, verify count) → `ExportServiceTxtImpl` (only supplies
-`getRekordboxSongs`, the format-specific parsing). Adding a new playlist format means: subclass
-`AbstractExportService`, implement `getRekordboxSongs`, and add a case to the `switch (inputFormat)` in
-`RPXGUI.getExportButton` — that switch currently has only a `default` branch and is the intended extension point
-(an Italian comment there marks it, e.g. for M3U8). `RPXGUI.reloadPanel`/`getExportButton` already thread an
-`inputFormat` string through for this purpose.
+orchestration: resolve output folder, copy files, verify count) → one implementation per format
+(`ExportServiceTxtImpl`, `ExportServiceM3u8Impl`), each supplying only `getRekordboxSongs`, the format-specific
+parsing. `ExportServiceFactory` maps a file extension to its service and holds the list of supported formats.
+
+Adding a new playlist format means: subclass `AbstractExportService`, implement `getRekordboxSongs`, then add a
+case and a `SUPPORTED_FORMATS` entry to the factory. The GUI needs no change: it derives the format from each
+file's extension, and builds the file-chooser filter from `getSupportedFormats()`. `RPXGUI.exportPlaylists`
+groups the selection by format before delegating, so a selection mixing formats exports in one go.
 
 **Output location.** `exportPlaylists(list, destinationFolderPath)` creates one folder per playlist under the
 given path; the one-argument overload delegates to it with `OsUtils.getDesktopPath()`, which is what the GUI
@@ -57,6 +59,12 @@ decode the same playlist differently. Parsing then strips embedded NUL character
 tabs by **fixed column index (0–13)**, and passes title/artist/path through `fixDoubleUTF8Encoding`, which detects
 the `0x83 0xC2` byte pair and re-decodes ISO-8859-1 → UTF-8. Changes to column order or to encoding assumptions
 break parsing silently or with `IndexOutOfBounds`/`NumberFormatException` wrapped in `RPXException`.
+
+**m3u8 parsing.** m3u8 is UTF-8 by definition, so `ExportServiceM3u8Impl` reads it as UTF-8 and — unlike the txt
+path — never detects nor rewrites the file's encoding. Lines starting with `#` are directives (`#EXTM3U`,
+`#EXTINF`) and are skipped; every other non-blank line is a track path. The track number comes from the position
+in the file, since the format has no such column, and only `trackNumber` and `filePath` are set on
+`RekordboxSong` — they are the only fields the export actually uses.
 
 **Track ordering.** When "Keep tracks order" is checked, files are copied as `<trackNumber> - <original name>`;
 `RekordboxSong.setTrackNumber` zero-pads to three digits so lexical sort matches playlist order.

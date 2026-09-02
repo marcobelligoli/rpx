@@ -34,12 +34,14 @@ The installers are not code-signed, so the operating system warns the first time
 
 ## Usage Instructions
 
-To generate playlist folders from a `.txt` playlist file:
+To generate playlist folders from a playlist exported by Rekordbox, in `.txt` or `.m3u8` format:
 
-1. In Rekordbox, right-click on the desired playlist and select *"Export as txt file"*.
-2. Run the RPX tool and select the "SELECT ALL TXT PLAYLIST FILES TO EXPORT" option.
-3. Choose one or more `.txt` files from the file selection dialog. The *BACK* button returns to the initial screen,
-   so a wrong selection can be discarded and made again.
+1. In Rekordbox, right-click on the desired playlist and select *"Export as txt file"*, or the equivalent m3u8
+   export.
+2. Run the RPX tool and select the "SELECT ALL PLAYLIST FILES TO EXPORT" option.
+3. Choose one or more `.txt` or `.m3u8` files from the file selection dialog; the two formats can be mixed in the
+   same selection. The *BACK* button returns to the initial screen, so a wrong selection can be discarded and made
+   again.
 4. For each playlist, the software offers the option to preserve the track order:
     - If enabled, the file names are prefixed with the track's position in the playlist.
     - If disabled, the files are copied in alphabetical order.
