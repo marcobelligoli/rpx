@@ -125,7 +125,8 @@ When the workflow finishes:
 RPX is released under the [MIT License](LICENSE).
 
 The published artifacts bundle third-party components that keep their own licenses (Apache Commons, juniversalchardet,
-and the Eclipse Temurin runtime embedded in the native installers): see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+and the Eclipse Temurin runtime embedded in the native installers):
+see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 ## Support
 

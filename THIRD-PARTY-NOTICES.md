@@ -5,11 +5,11 @@ components, which keep their own licenses as listed below.
 
 ## Bundled in the runnable JAR and in every native bundle
 
-| Component                                | Version | License                     |
-|------------------------------------------|---------|-----------------------------|
-| Apache Commons IO                        | 2.15.1  | Apache License 2.0          |
-| Apache Commons Lang                      | 3.13.0  | Apache License 2.0          |
-| juniversalchardet                        | 1.0.3   | Mozilla Public License 1.1  |
+| Component           | Version | License                    |
+|---------------------|---------|----------------------------|
+| Apache Commons IO   | 2.15.1  | Apache License 2.0         |
+| Apache Commons Lang | 3.13.0  | Apache License 2.0         |
+| juniversalchardet   | 1.0.3   | Mozilla Public License 1.1 |
 
 juniversalchardet is used unmodified. The MPL 1.1 requires the source of the covered files to stay available: the
 original project is archived at <https://code.google.com/archive/p/juniversalchardet/>.
