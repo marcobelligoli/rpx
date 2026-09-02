@@ -15,6 +15,9 @@ import java.util.List;
  */
 public class RPXGUI extends JFrame {
 
+    private static final int INITIAL_WIDTH = 500;
+    private static final int INITIAL_HEIGHT = 200;
+
     private final JPanel panel;
     private List<RekordboxPlaylistParam> rekordboxPlaylistParamList;
 
@@ -22,7 +25,7 @@ public class RPXGUI extends JFrame {
         rekordboxPlaylistParamList = new ArrayList<>();
         setTitle("RPX - Rekordbox Playlist Exporter");
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        setSize(500, 200);
+        setSize(INITIAL_WIDTH, INITIAL_HEIGHT);
 
         panel = new JPanel();
         initPanel();
@@ -79,10 +82,15 @@ public class RPXGUI extends JFrame {
             checkBoxes[i] = checkBox;
         }
 
-        JButton exportButton = getExportButton(selectedFiles, filePathFields, checkBoxes, "txt");
+        JButton backButton = new JButton("BACK");
+        backButton.addActionListener(e -> resetPanel());
         gbc.gridx = 0;
         gbc.gridy = selectedFiles.length + 1;
-        gbc.gridwidth = 2;
+        gbc.gridwidth = 1;
+        panel.add(backButton, gbc);
+
+        JButton exportButton = getExportButton(selectedFiles, filePathFields, checkBoxes, inputFormat);
+        gbc.gridx = 1;
         panel.add(exportButton, gbc);
 
         pack();
@@ -92,6 +100,8 @@ public class RPXGUI extends JFrame {
                                     String inputFormat) {
         JButton exportButton = new JButton("EXPORT SELECTED PLAYLIST");
         exportButton.addActionListener(e -> {
+            // rebuild the list from scratch, so that retrying after a failed export does not export twice
+            rekordboxPlaylistParamList.clear();
             for (int i = 0; i < selectedFiles.length; i++) {
                 RekordboxPlaylistParam param = new RekordboxPlaylistParam();
                 param.setPlaylistPath(filePathFields[i].getText());
@@ -122,6 +132,7 @@ public class RPXGUI extends JFrame {
     private void resetPanel() {
         panel.removeAll();
         initPanel();
+        setSize(INITIAL_WIDTH, INITIAL_HEIGHT);
         revalidate();
         repaint();
         rekordboxPlaylistParamList.clear();
