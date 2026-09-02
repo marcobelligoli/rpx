@@ -1,15 +1,17 @@
 package org.mb.tools.rpx.ui;
 
 import org.mb.tools.rpx.model.RekordboxPlaylistParam;
-import org.mb.tools.rpx.service.export.ExportService;
-import org.mb.tools.rpx.service.export.ExportServiceTxtImpl;
+import org.mb.tools.rpx.service.export.ExportServiceFactory;
 import org.mb.tools.rpx.utils.OsUtils;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Application GUI
@@ -40,31 +42,35 @@ public class RPXGUI extends JFrame {
     }
 
     private void initPanel() {
-        JButton selectTxtFilesButton = new JButton("SELECT ALL TXT PLAYLIST FILES TO EXPORT");
-        selectTxtFilesButton.addActionListener(e -> {
+        JButton selectFilesButton = new JButton("SELECT ALL PLAYLIST FILES TO EXPORT");
+        selectFilesButton.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setMultiSelectionEnabled(true);
+            List<String> supportedFormats = ExportServiceFactory.getSupportedFormats();
+            fileChooser.setFileFilter(new FileNameExtensionFilter(
+                    "Rekordbox playlists (" + String.join(", ", supportedFormats) + ")",
+                    supportedFormats.toArray(new String[0])));
             int returnValue = fileChooser.showOpenDialog(null);
             if (returnValue == JFileChooser.APPROVE_OPTION) {
                 File[] selectedFiles = fileChooser.getSelectedFiles();
-                reloadPanel(selectedFiles, "txt");
+                reloadPanel(selectedFiles);
             }
         });
 
         // a GridBagLayout holding a single component keeps it centred
         JPanel buttonHolder = new JPanel(new GridBagLayout());
-        buttonHolder.add(selectTxtFilesButton);
+        buttonHolder.add(selectFilesButton);
         panel.add(buttonHolder, BorderLayout.CENTER);
     }
 
-    private void reloadPanel(File[] selectedFiles, String inputFormat) {
+    private void reloadPanel(File[] selectedFiles) {
         panel.removeAll();
 
         JTextField[] filePathFields = new JTextField[selectedFiles.length];
         JCheckBox[] checkBoxes = new JCheckBox[selectedFiles.length];
 
         panel.add(buildPlaylistsSection(selectedFiles, filePathFields, checkBoxes), BorderLayout.CENTER);
-        panel.add(buildFooter(selectedFiles, filePathFields, checkBoxes, inputFormat), BorderLayout.SOUTH);
+        panel.add(buildFooter(selectedFiles, filePathFields, checkBoxes), BorderLayout.SOUTH);
 
         pack();
         setLocationRelativeTo(null);
@@ -135,8 +141,7 @@ public class RPXGUI extends JFrame {
     /**
      * Builds the bottom part of the screen: the export folder chooser and the action buttons
      */
-    private JPanel buildFooter(File[] selectedFiles, JTextField[] filePathFields, JCheckBox[] checkBoxes,
-                               String inputFormat) {
+    private JPanel buildFooter(File[] selectedFiles, JTextField[] filePathFields, JCheckBox[] checkBoxes) {
         JTextField outputFolderField = new JTextField(outputFolderPath, PATH_FIELD_COLUMNS);
         outputFolderField.setEditable(false);
         outputFolderField.setToolTipText(outputFolderPath);
@@ -158,7 +163,7 @@ public class RPXGUI extends JFrame {
 
         JPanel buttonBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         buttonBar.add(backButton);
-        buttonBar.add(getExportButton(selectedFiles, filePathFields, checkBoxes, inputFormat));
+        buttonBar.add(getExportButton(selectedFiles, filePathFields, checkBoxes));
 
         JPanel footer = new JPanel(new BorderLayout(0, 10));
         footer.add(outputFolderPanel, BorderLayout.NORTH);
@@ -179,8 +184,7 @@ public class RPXGUI extends JFrame {
         }
     }
 
-    private JButton getExportButton(File[] selectedFiles, JTextField[] filePathFields, JCheckBox[] checkBoxes,
-                                    String inputFormat) {
+    private JButton getExportButton(File[] selectedFiles, JTextField[] filePathFields, JCheckBox[] checkBoxes) {
         JButton exportButton = new JButton("EXPORT SELECTED PLAYLIST");
         exportButton.addActionListener(e -> {
             // rebuild the list from scratch, so that retrying after a failed export does not export twice
@@ -192,14 +196,7 @@ public class RPXGUI extends JFrame {
                 rekordboxPlaylistParamList.add(param);
             }
             try {
-                ExportService exportService;
-                switch (inputFormat) {
-                    // gestire qui altri formati (es. M3U8)
-                    default:
-                        exportService = new ExportServiceTxtImpl();
-                        break;
-                }
-                exportService.exportPlaylists(rekordboxPlaylistParamList, outputFolderPath);
+                exportPlaylists();
                 JOptionPane.showMessageDialog(null, "Operation successfully done!", "Success",
                         JOptionPane.INFORMATION_MESSAGE);
                 resetPanel();
@@ -209,6 +206,23 @@ public class RPXGUI extends JFrame {
             }
         });
         return exportButton;
+    }
+
+    /**
+     * Exports the selected playlists, grouped by format so that each group is read by its own service:
+     * playlists of different formats can be selected and exported together
+     */
+    private void exportPlaylists() {
+        Map<String, List<RekordboxPlaylistParam>> playlistsByFormat = new LinkedHashMap<>();
+        for (RekordboxPlaylistParam param : rekordboxPlaylistParamList) {
+            String inputFormat = ExportServiceFactory.getInputFormat(param.getPlaylistPath());
+            playlistsByFormat.computeIfAbsent(inputFormat, format -> new ArrayList<>()).add(param);
+        }
+
+        for (Map.Entry<String, List<RekordboxPlaylistParam>> playlists : playlistsByFormat.entrySet()) {
+            ExportServiceFactory.getExportService(playlists.getKey())
+                    .exportPlaylists(playlists.getValue(), outputFolderPath);
+        }
     }
 
     private void resetPanel() {

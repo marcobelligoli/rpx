@@ -6,6 +6,10 @@ public class RPXException extends RuntimeException {
         super(cause);
     }
 
+    public RPXException(String message) {
+        super(message);
+    }
+
     public RPXException(int playlistFileLines, int totalCopiedSongs) {
         super(String.format("ATTENTION: number of song in txt [%d] is different from total file copied [%d]. " +
                         "Errors occurred during file copy, please retry later.",
