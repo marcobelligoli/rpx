@@ -33,9 +33,11 @@ orchestration: resolve output folder, copy files, verify count) → `ExportServi
 (an Italian comment there marks it, e.g. for M3U8). `RPXGUI.reloadPanel`/`getExportButton` already thread an
 `inputFormat` string through for this purpose.
 
-**Output location.** `OsUtils.getDesktopPath()` is a misnomer: it returns `FileSystemView.getHomeDirectory()`,
-i.e. the user's home directory, not the Desktop. Every playlist folder is created directly under it. Tests mock
-this statically rather than touching the real home directory.
+**Output location.** `OsUtils.getDesktopPath()` returns the Desktop on every platform, falling back to the home
+directory when there is no Desktop folder. It has to branch per OS: `FileSystemView.getHomeDirectory()` returns
+the Desktop on Windows (and follows a relocated one, e.g. OneDrive), but the plain home directory on macOS and
+Linux, where the Desktop is resolved from `user.home` instead. Every playlist folder is created directly under
+that path. `AbstractExportServiceTest` mocks the method statically rather than touching the real Desktop.
 
 **Post-copy verification.** `AbstractExportService.checkSongsNumber` compares the number of parsed playlist rows
 against the number of files with an audio extension (`AUDIO_FORMATS`) present in the output folder, and throws
@@ -45,7 +47,10 @@ this mismatch rather than as an immediate error.
 
 **Encoding handling (txt format).** Rekordbox exports are typically UTF-16LE. `ExportServiceTxtImpl` calls
 `FileUtils.changeFileEncoding` first, which **rewrites the user's playlist file in place as UTF-8** — a
-deliberate but destructive side effect on the input file. Parsing then strips embedded NUL characters, splits on
+deliberate but destructive side effect on the input file. Encoding is detected with juniversalchardet and mapped
+through `FileUtils.toCharset`, which falls back to UTF-8 for an undetected or unsupported charset; the platform
+default charset is deliberately never used, since it differs between Windows and macOS/Linux on JDK 17 and would
+decode the same playlist differently. Parsing then strips embedded NUL characters, splits on
 tabs by **fixed column index (0–13)**, and passes title/artist/path through `fixDoubleUTF8Encoding`, which detects
 the `0x83 0xC2` byte pair and re-decodes ISO-8859-1 → UTF-8. Changes to column order or to encoding assumptions
 break parsing silently or with `IndexOutOfBounds`/`NumberFormatException` wrapped in `RPXException`.

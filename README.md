@@ -42,7 +42,8 @@ To generate playlist folders from a `.txt` playlist file:
 4. For each playlist, the software offers the option to preserve the track order:
     - If enabled, the file names are prefixed with the track's position in the playlist.
     - If disabled, the files are copied in alphabetical order.
-5. A folder containing the tracks is generated in the user's home directory for each playlist.
+5. A folder containing the tracks is generated on the Desktop for each playlist (in the home directory when no
+   Desktop folder exists). The behaviour is the same on Windows, macOS and Linux.
 
 ## Development
 

@@ -1,6 +1,8 @@
 package org.mb.tools.rpx.utils;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import javax.swing.filechooser.FileSystemView;
 import java.io.File;
@@ -12,10 +14,17 @@ import static org.mockito.Mockito.*;
 
 class OsUtilsTest {
 
+    @AfterEach
+    void tearDown() {
+        OsUtils.setSystemPropertyProvider(System::getProperty);
+    }
+
     @Test
-    void testGetDesktopPath() {
+    void testGetDesktopPathOnWindows() {
+        mockOs("Windows 10");
         FileSystemView mockedFileSystemView = mock(FileSystemView.class);
 
+        // on Windows FileSystemView.getHomeDirectory() resolves the Desktop, even when it is relocated
         File mockedDesktopDirectory = new File("mocked/desktop/path");
         when(mockedFileSystemView.getHomeDirectory()).thenReturn(mockedDesktopDirectory);
 
@@ -27,6 +36,22 @@ class OsUtilsTest {
 
             assertEquals(expectedPath, actualPath);
         }
+    }
+
+    @Test
+    void testGetDesktopPathOnUnix(@TempDir Path home) {
+        File desktop = new File(home.toFile(), "Desktop");
+        assertTrue(desktop.mkdir());
+        mockOs("Mac OS X", home.toString());
+
+        assertEquals(desktop.getAbsolutePath(), OsUtils.getDesktopPath());
+    }
+
+    @Test
+    void testGetDesktopPathOnUnixWithoutDesktopFolder(@TempDir Path home) {
+        mockOs("Linux", home.toString());
+
+        assertEquals(home.toFile().getAbsolutePath(), OsUtils.getDesktopPath());
     }
 
     @Test
@@ -46,9 +71,7 @@ class OsUtilsTest {
 
     @Test
     void testIsWindows() {
-        SystemPropertyProvider mockProvider = mock(SystemPropertyProvider.class);
-        when(mockProvider.getProperty("os.name")).thenReturn("Windows 10");
-        OsUtils.setSystemPropertyProvider(mockProvider);
+        mockOs("Windows 10");
         assertTrue(OsUtils.isWindows());
         assertFalse(OsUtils.isMac());
         assertFalse(OsUtils.isLinuxOrUnix());
@@ -56,9 +79,7 @@ class OsUtilsTest {
 
     @Test
     void testIsMac() {
-        SystemPropertyProvider mockProvider = mock(SystemPropertyProvider.class);
-        when(mockProvider.getProperty("os.name")).thenReturn("Mac OS X");
-        OsUtils.setSystemPropertyProvider(mockProvider);
+        mockOs("Mac OS X");
         assertTrue(OsUtils.isMac());
         assertFalse(OsUtils.isWindows());
         assertFalse(OsUtils.isLinuxOrUnix());
@@ -66,18 +87,25 @@ class OsUtilsTest {
 
     @Test
     void testIsLinuxOrUnix() {
-        SystemPropertyProvider mockProvider = mock(SystemPropertyProvider.class);
-        when(mockProvider.getProperty("os.name")).thenReturn("Linux");
-        OsUtils.setSystemPropertyProvider(mockProvider);
+        mockOs("Linux");
         assertTrue(OsUtils.isLinuxOrUnix());
         assertFalse(OsUtils.isWindows());
         assertFalse(OsUtils.isMac());
     }
 
-    private static void testOs(String t, String expected) {
-        SystemPropertyProvider mockProvider = mock(SystemPropertyProvider.class);
-        when(mockProvider.getProperty("os.name")).thenReturn(t);
-        OsUtils.setSystemPropertyProvider(mockProvider);
+    private static void testOs(String osName, String expected) {
+        mockOs(osName);
         assertEquals(expected, OsUtils.getOperatingSystem());
+    }
+
+    private static void mockOs(String osName) {
+        mockOs(osName, System.getProperty("user.home"));
+    }
+
+    private static void mockOs(String osName, String userHome) {
+        SystemPropertyProvider mockProvider = mock(SystemPropertyProvider.class);
+        when(mockProvider.getProperty("os.name")).thenReturn(osName);
+        when(mockProvider.getProperty("user.home")).thenReturn(userHome);
+        OsUtils.setSystemPropertyProvider(mockProvider);
     }
 }
