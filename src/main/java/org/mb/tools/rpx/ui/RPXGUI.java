@@ -146,7 +146,10 @@ public class RPXGUI extends JFrame {
         changeOutputFolderButton.addActionListener(e -> chooseOutputFolder(outputFolderField));
 
         JPanel outputFolderPanel = new JPanel(new BorderLayout(5, 0));
-        outputFolderPanel.setBorder(BorderFactory.createTitledBorder("Export folder"));
+        // same padding the playlist rows get from their insets, so the two sections look alike
+        outputFolderPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createTitledBorder("Export folder"),
+                BorderFactory.createEmptyBorder(2, 5, 2, 5)));
         outputFolderPanel.add(outputFolderField, BorderLayout.CENTER);
         outputFolderPanel.add(changeOutputFolderButton, BorderLayout.EAST);
 
