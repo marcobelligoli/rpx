@@ -8,6 +8,25 @@
     <artifactId>rpx</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 
+    <name>RPX</name>
+    <description>Rekordbox Playlist Exporter</description>
+    <url>https://github.com/marcobelligoli/rpx</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/license/mit</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Marco Belligoli</name>
+            <url>https://github.com/marcobelligoli</url>
+        </developer>
+    </developers>
+
     <properties>
         <commons-io.version>2.15.1</commons-io.version>
         <commons-lang3.version>3.13.0</commons-lang3.version>

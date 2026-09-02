@@ -120,6 +120,13 @@ When the workflow finishes:
 - Building the installers locally is possible with the same commands used by
   `.github/workflows/build-release.yml`; only `jpackage` from JDK 17+ and, on Windows, WiX 3 are needed.
 
+## License
+
+RPX is released under the [MIT License](LICENSE).
+
+The published artifacts bundle third-party components that keep their own licenses (Apache Commons, juniversalchardet,
+and the Eclipse Temurin runtime embedded in the native installers): see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
 ## Support
 
 For technical assistance, contact via email: marco.belligoli98@gmail.com.
