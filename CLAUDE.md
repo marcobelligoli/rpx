@@ -33,11 +33,14 @@ orchestration: resolve output folder, copy files, verify count) → `ExportServi
 (an Italian comment there marks it, e.g. for M3U8). `RPXGUI.reloadPanel`/`getExportButton` already thread an
 `inputFormat` string through for this purpose.
 
-**Output location.** `OsUtils.getDesktopPath()` returns the Desktop on every platform, falling back to the home
-directory when there is no Desktop folder. It has to branch per OS: `FileSystemView.getHomeDirectory()` returns
-the Desktop on Windows (and follows a relocated one, e.g. OneDrive), but the plain home directory on macOS and
-Linux, where the Desktop is resolved from `user.home` instead. Every playlist folder is created directly under
-that path. `AbstractExportServiceTest` mocks the method statically rather than touching the real Desktop.
+**Output location.** `exportPlaylists(list, destinationFolderPath)` creates one folder per playlist under the
+given path; the one-argument overload delegates to it with `OsUtils.getDesktopPath()`, which is what the GUI
+starts from and what keeps the older call sites working. `getDesktopPath()` returns the Desktop on every
+platform, falling back to the home directory when there is no Desktop folder. It has to branch per OS:
+`FileSystemView.getHomeDirectory()` returns the Desktop on Windows (and follows a relocated one, e.g. OneDrive),
+but the plain home directory on macOS and Linux, where the Desktop is resolved from `user.home` instead.
+`AbstractExportServiceTest` mocks the method statically rather than touching the real Desktop — keep that mock
+even in tests that pass an explicit destination, so a regression cannot write into the developer's own Desktop.
 
 **Post-copy verification.** `AbstractExportService.checkSongsNumber` compares the number of parsed playlist rows
 against the number of files with an audio extension (`AUDIO_FORMATS`) present in the output folder, and throws

@@ -3,6 +3,7 @@ package org.mb.tools.rpx.service.export;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mb.tools.rpx.exception.RPXException;
 import org.mb.tools.rpx.model.RekordboxPlaylistParam;
 import org.mb.tools.rpx.model.RekordboxSong;
@@ -85,6 +86,25 @@ class AbstractExportServiceTest {
             testExportService.exportPlaylists(playlistsToExport);
 
             assertTrue(desktop.resolve("test").resolve("001 - song.mp3").toFile().exists());
+        }
+    }
+
+    @Test
+    void testExportPlaylistsInChosenFolder(@TempDir Path chosenFolder) {
+
+        try (MockedStatic<OsUtils> mockedOsUtils = mockStatic(OsUtils.class)) {
+            mockedOsUtils.when(OsUtils::getDesktopPath).thenReturn(desktop.toFile().getAbsolutePath());
+
+            List<RekordboxPlaylistParam> playlistsToExport = new ArrayList<>();
+            RekordboxPlaylistParam param = new RekordboxPlaylistParam();
+            param.setPlaylistPath(getPath("test.txt"));
+            param.setMaintainPlaylistOrder(false);
+            playlistsToExport.add(param);
+
+            testExportService.exportPlaylists(playlistsToExport, chosenFolder.toFile().getAbsolutePath());
+
+            assertTrue(chosenFolder.resolve("test").resolve("song.mp3").toFile().exists());
+            assertFalse(desktop.resolve("test").toFile().exists());
         }
     }
 

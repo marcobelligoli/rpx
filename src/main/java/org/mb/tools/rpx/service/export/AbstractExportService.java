@@ -26,13 +26,16 @@ public abstract class AbstractExportService implements ExportService {
 
     @Override
     public void exportPlaylists(List<RekordboxPlaylistParam> playlistsToExport) {
-        try {
-            String desktopPath = OsUtils.getDesktopPath();
+        exportPlaylists(playlistsToExport, OsUtils.getDesktopPath());
+    }
 
+    @Override
+    public void exportPlaylists(List<RekordboxPlaylistParam> playlistsToExport, String destinationFolderPath) {
+        try {
             for (RekordboxPlaylistParam rekordboxPlaylistParam : playlistsToExport) {
 
                 String playlistName = getPlaylistName(rekordboxPlaylistParam);
-                String outputFolderPath = getOutputFolderPath(desktopPath, playlistName);
+                String outputFolderPath = getOutputFolderPath(destinationFolderPath, playlistName);
 
                 exportPlaylist(playlistName, rekordboxPlaylistParam.getPlaylistPath(),
                         rekordboxPlaylistParam.isMaintainPlaylistOrder(), outputFolderPath);
@@ -46,8 +49,8 @@ public abstract class AbstractExportService implements ExportService {
         }
     }
 
-    static String getOutputFolderPath(String desktopPath, String playlistName) {
-        return Path.of(desktopPath).resolve(playlistName).toString();
+    static String getOutputFolderPath(String destinationFolderPath, String playlistName) {
+        return Path.of(destinationFolderPath).resolve(playlistName).toString();
     }
 
     static String getPlaylistName(RekordboxPlaylistParam rekordboxPlaylistParam) {

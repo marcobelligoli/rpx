@@ -3,6 +3,7 @@ package org.mb.tools.rpx.ui;
 import org.mb.tools.rpx.model.RekordboxPlaylistParam;
 import org.mb.tools.rpx.service.export.ExportService;
 import org.mb.tools.rpx.service.export.ExportServiceTxtImpl;
+import org.mb.tools.rpx.utils.OsUtils;
 
 import javax.swing.*;
 import java.awt.*;
@@ -20,9 +21,11 @@ public class RPXGUI extends JFrame {
 
     private final JPanel panel;
     private List<RekordboxPlaylistParam> rekordboxPlaylistParamList;
+    private String outputFolderPath;
 
     public RPXGUI() {
         rekordboxPlaylistParamList = new ArrayList<>();
+        outputFolderPath = OsUtils.getDesktopPath();
         setTitle("RPX - Rekordbox Playlist Exporter");
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setSize(INITIAL_WIDTH, INITIAL_HEIGHT);
@@ -82,10 +85,26 @@ public class RPXGUI extends JFrame {
             checkBoxes[i] = checkBox;
         }
 
+        JLabel outputFolderLabel = new JLabel("Export folder:");
+        gbc.gridx = 0;
+        gbc.gridy = selectedFiles.length + 1;
+        panel.add(outputFolderLabel, gbc);
+
+        JTextField outputFolderField = new JTextField(outputFolderPath);
+        outputFolderField.setEditable(false);
+        gbc.gridx = 0;
+        gbc.gridy = selectedFiles.length + 2;
+        panel.add(outputFolderField, gbc);
+
+        JButton changeOutputFolderButton = new JButton("CHANGE FOLDER");
+        changeOutputFolderButton.addActionListener(e -> chooseOutputFolder(outputFolderField));
+        gbc.gridx = 1;
+        panel.add(changeOutputFolderButton, gbc);
+
         JButton backButton = new JButton("BACK");
         backButton.addActionListener(e -> resetPanel());
         gbc.gridx = 0;
-        gbc.gridy = selectedFiles.length + 1;
+        gbc.gridy = selectedFiles.length + 3;
         gbc.gridwidth = 1;
         panel.add(backButton, gbc);
 
@@ -94,6 +113,18 @@ public class RPXGUI extends JFrame {
         panel.add(exportButton, gbc);
 
         pack();
+    }
+
+    private void chooseOutputFolder(JTextField outputFolderField) {
+        JFileChooser folderChooser = new JFileChooser(outputFolderPath);
+        folderChooser.setDialogTitle("Select the folder where the playlist folders will be created");
+        folderChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        int returnValue = folderChooser.showOpenDialog(null);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
+            outputFolderPath = folderChooser.getSelectedFile().getAbsolutePath();
+            outputFolderField.setText(outputFolderPath);
+            pack();
+        }
     }
 
     private JButton getExportButton(File[] selectedFiles, JTextField[] filePathFields, JCheckBox[] checkBoxes,
@@ -116,7 +147,7 @@ public class RPXGUI extends JFrame {
                         exportService = new ExportServiceTxtImpl();
                         break;
                 }
-                exportService.exportPlaylists(rekordboxPlaylistParamList);
+                exportService.exportPlaylists(rekordboxPlaylistParamList, outputFolderPath);
                 JOptionPane.showMessageDialog(null, "Operation successfully done!", "Success",
                         JOptionPane.INFORMATION_MESSAGE);
                 panel.removeAll();
