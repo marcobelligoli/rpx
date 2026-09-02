@@ -5,9 +5,27 @@ Rekordbox, along with additional functionalities.
 
 ## Download
 
-The executable version of the software can be downloaded from
-the [project releases](https://github.com/marcobelligoli/rpx/releases) when available.
-Each tagged build produces downloadable artifacts for Windows, macOS, Linux, and a runnable JAR.
+Ready-to-use builds are published on the [project releases](https://github.com/marcobelligoli/rpx/releases):
+
+| File                                 | Platform            | Notes                                              |
+|--------------------------------------|---------------------|----------------------------------------------------|
+| `RPX-<tag>-windows-x64.exe`          | Windows             | Installer, per-user (no administrator rights needed) |
+| `RPX-<tag>-windows-x64-portable.zip` | Windows             | Portable app, unzip and run `RPX.exe`               |
+| `RPX-<tag>-macos-arm64.dmg`          | macOS Apple Silicon | Installer, drag RPX into Applications               |
+| `RPX-<tag>-macos-x64.dmg`            | macOS Intel         | Installer, drag RPX into Applications               |
+| `RPX-<tag>-linux-x64.tar.gz`         | Linux               | Portable app image                                  |
+| `RPX-<tag>.jar`                      | Any                 | Runnable JAR, requires Java 17+                     |
+
+Every platform bundle ships its own Java runtime, so no separate Java installation is needed. Only the JAR
+requires Java to be installed.
+
+### Unsigned builds
+
+The installers are not code-signed, so the operating system warns the first time RPX is launched:
+
+- **Windows**: SmartScreen shows *"Windows protected your PC"* → click *More info* → *Run anyway*.
+- **macOS**: *"RPX cannot be opened because the developer cannot be verified"* → open RPX from the Applications
+  folder with right click → *Open*, or run `xattr -dr com.apple.quarantine /Applications/RPX.app`.
 
 ## System Requirements
 
@@ -70,23 +88,35 @@ mvn -B clean verify
 
 ## Release Artifacts
 
-Pushing a tag triggers the release packaging workflow. The workflow first runs build and tests, then creates
-downloadable artifacts for each supported platform using `jpackage`:
-
-- Windows: ZIP containing the RPX app image with `RPX.exe`
-- macOS: ZIP containing `RPX.app`
-- Linux: TAR.GZ containing the RPX app image and launcher
-- Runnable JAR: `rpx-jar-with-dependencies.jar`
-
-Example tag flow:
+Pushing a tag runs the whole pipeline: build and tests, then a packaging matrix that produces a native bundle per
+platform with `jpackage`, and finally a job that attaches every artifact to the GitHub Release of that tag.
 
 ```sh
-git tag v0.2.0
-git push origin v0.2.0
+git tag 1.0.0
+git push origin 1.0.0
 ```
 
-After the workflow completes, the artifacts are available from the GitHub Actions run and can be attached manually to a
-GitHub Release.
+When the workflow finishes:
+
+- if no release exists yet for the tag, a **draft** release is created with all the assets already attached — review
+  it on GitHub, edit the notes and press *Publish release*;
+- if the release already exists, the assets are uploaded to it (with `--clobber`, so re-running the workflow
+  refreshes them).
+
+### Packaging notes
+
+- The Windows installer is produced by `jpackage --type exe`, which requires the WiX Toolset 3 (`candle.exe` /
+  `light.exe`; WiX 4+ is not supported by jpackage). The workflow uses the copy shipped with the runner image and
+  falls back to installing it via Chocolatey.
+- Icons live in `packaging/`: `RPX.ico` is used on Windows, `RPX.png` on Linux, and the macOS `RPX.icns` is generated
+  on the runner from the PNG with `sips` and `iconutil`.
+- macOS Intel bundles are built on the `macos-15-intel` runner, the last Intel image GitHub Actions offers
+  (available until August 2027); Apple Silicon bundles are built on `macos-latest`.
+- Tags must start with a numeric version of at least `1.0.0` (an optional `v` prefix is stripped): `jpackage`
+  rejects a bundle version whose major number is zero, because of Apple's `CFBundleVersion` rule. The project
+  version in `pom.xml` follows the same line.
+- Building the installers locally is possible with the same commands used by
+  `.github/workflows/build-release.yml`; only `jpackage` from JDK 17+ and, on Windows, WiX 3 are needed.
 
 ## Support
 
