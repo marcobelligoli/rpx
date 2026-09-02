@@ -18,6 +18,8 @@ public class RPXGUI extends JFrame {
 
     private static final int INITIAL_WIDTH = 500;
     private static final int INITIAL_HEIGHT = 200;
+    private static final int PATH_FIELD_COLUMNS = 40;
+    private static final int MAX_VISIBLE_PLAYLISTS = 8;
 
     private final JPanel panel;
     private List<RekordboxPlaylistParam> rekordboxPlaylistParamList;
@@ -29,21 +31,16 @@ public class RPXGUI extends JFrame {
         setTitle("RPX - Rekordbox Playlist Exporter");
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setSize(INITIAL_WIDTH, INITIAL_HEIGHT);
+        setLocationRelativeTo(null);
 
-        panel = new JPanel();
+        panel = new JPanel(new BorderLayout(0, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        add(panel);
         initPanel();
     }
 
     private void initPanel() {
-        panel.setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-
         JButton selectTxtFilesButton = new JButton("SELECT ALL TXT PLAYLIST FILES TO EXPORT");
-        gbc.gridx = 1;
-        gbc.gridy = 0;
-        panel.add(selectTxtFilesButton, gbc);
-
         selectTxtFilesButton.addActionListener(e -> {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setMultiSelectionEnabled(true);
@@ -54,65 +51,116 @@ public class RPXGUI extends JFrame {
             }
         });
 
-        add(panel);
+        // a GridBagLayout holding a single component keeps it centred
+        JPanel buttonHolder = new JPanel(new GridBagLayout());
+        buttonHolder.add(selectTxtFilesButton);
+        panel.add(buttonHolder, BorderLayout.CENTER);
     }
 
     private void reloadPanel(File[] selectedFiles, String inputFormat) {
         panel.removeAll();
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-
-        JLabel label = new JLabel("Selected playlist:");
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        panel.add(label, gbc);
-
         JTextField[] filePathFields = new JTextField[selectedFiles.length];
         JCheckBox[] checkBoxes = new JCheckBox[selectedFiles.length];
+
+        panel.add(buildPlaylistsSection(selectedFiles, filePathFields, checkBoxes), BorderLayout.CENTER);
+        panel.add(buildFooter(selectedFiles, filePathFields, checkBoxes, inputFormat), BorderLayout.SOUTH);
+
+        pack();
+        setLocationRelativeTo(null);
+    }
+
+    /**
+     * Builds the scrollable list of the selected playlists, one row per file
+     */
+    private JComponent buildPlaylistsSection(File[] selectedFiles, JTextField[] filePathFields,
+                                             JCheckBox[] checkBoxes) {
+        JPanel listPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(2, 5, 2, 5);
+
+        // the checkbox column is labelled once, instead of repeating the text on every row
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.CENTER;
+        listPanel.add(new JLabel("Keep order"), gbc);
+
         for (int i = 0; i < selectedFiles.length; i++) {
-            JTextField filePathField = new JTextField(selectedFiles[i].getAbsolutePath());
+            String filePath = selectedFiles[i].getAbsolutePath();
+
+            JTextField filePathField = new JTextField(filePath, PATH_FIELD_COLUMNS);
             filePathField.setEditable(false);
+            filePathField.setToolTipText(filePath);
+            filePathField.setCaretPosition(0);
             gbc.gridx = 0;
             gbc.gridy = i + 1;
-            panel.add(filePathField, gbc);
+            gbc.weightx = 1;
+            gbc.fill = GridBagConstraints.HORIZONTAL;
+            listPanel.add(filePathField, gbc);
             filePathFields[i] = filePathField;
 
-            JCheckBox checkBox = new JCheckBox("Keep tracks order");
+            JCheckBox checkBox = new JCheckBox();
+            checkBox.setToolTipText("Prefix every file with its position in the playlist");
             gbc.gridx = 1;
-            gbc.gridy = i + 1;
-            panel.add(checkBox, gbc);
+            gbc.weightx = 0;
+            gbc.fill = GridBagConstraints.NONE;
+            listPanel.add(checkBox, gbc);
             checkBoxes[i] = checkBox;
         }
 
-        JLabel outputFolderLabel = new JLabel("Export folder:");
-        gbc.gridx = 0;
-        gbc.gridy = selectedFiles.length + 1;
-        panel.add(outputFolderLabel, gbc);
+        JScrollPane scrollPane = new JScrollPane(listPanel);
+        scrollPane.setBorder(BorderFactory.createTitledBorder("Playlists to export"));
+        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        limitVisibleRows(scrollPane, listPanel, selectedFiles.length);
+        return scrollPane;
+    }
 
-        JTextField outputFolderField = new JTextField(outputFolderPath);
+    /**
+     * Caps the height of the playlist list: beyond MAX_VISIBLE_PLAYLISTS rows the list scrolls,
+     * so that selecting many files cannot push the buttons off the screen
+     */
+    private static void limitVisibleRows(JScrollPane scrollPane, JPanel listPanel, int playlistCount) {
+        if (playlistCount <= MAX_VISIBLE_PLAYLISTS) {
+            return;
+        }
+        // every row has the same height, so the visible height can be derived from the whole list
+        int totalRows = playlistCount + 1;
+        int visibleRows = MAX_VISIBLE_PLAYLISTS + 1;
+        Dimension preferredSize = listPanel.getPreferredSize();
+        scrollPane.getViewport().setPreferredSize(
+                new Dimension(preferredSize.width, preferredSize.height * visibleRows / totalRows));
+    }
+
+    /**
+     * Builds the bottom part of the screen: the export folder chooser and the action buttons
+     */
+    private JPanel buildFooter(File[] selectedFiles, JTextField[] filePathFields, JCheckBox[] checkBoxes,
+                               String inputFormat) {
+        JTextField outputFolderField = new JTextField(outputFolderPath, PATH_FIELD_COLUMNS);
         outputFolderField.setEditable(false);
-        gbc.gridx = 0;
-        gbc.gridy = selectedFiles.length + 2;
-        panel.add(outputFolderField, gbc);
+        outputFolderField.setToolTipText(outputFolderPath);
+        outputFolderField.setCaretPosition(0);
 
-        JButton changeOutputFolderButton = new JButton("CHANGE FOLDER");
+        JButton changeOutputFolderButton = new JButton("CHANGE...");
         changeOutputFolderButton.addActionListener(e -> chooseOutputFolder(outputFolderField));
-        gbc.gridx = 1;
-        panel.add(changeOutputFolderButton, gbc);
+
+        JPanel outputFolderPanel = new JPanel(new BorderLayout(5, 0));
+        outputFolderPanel.setBorder(BorderFactory.createTitledBorder("Export folder"));
+        outputFolderPanel.add(outputFolderField, BorderLayout.CENTER);
+        outputFolderPanel.add(changeOutputFolderButton, BorderLayout.EAST);
 
         JButton backButton = new JButton("BACK");
         backButton.addActionListener(e -> resetPanel());
-        gbc.gridx = 0;
-        gbc.gridy = selectedFiles.length + 3;
-        gbc.gridwidth = 1;
-        panel.add(backButton, gbc);
 
-        JButton exportButton = getExportButton(selectedFiles, filePathFields, checkBoxes, inputFormat);
-        gbc.gridx = 1;
-        panel.add(exportButton, gbc);
+        JPanel buttonBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        buttonBar.add(backButton);
+        buttonBar.add(getExportButton(selectedFiles, filePathFields, checkBoxes, inputFormat));
 
-        pack();
+        JPanel footer = new JPanel(new BorderLayout(0, 10));
+        footer.add(outputFolderPanel, BorderLayout.NORTH);
+        footer.add(buttonBar, BorderLayout.SOUTH);
+        return footer;
     }
 
     private void chooseOutputFolder(JTextField outputFolderField) {
@@ -123,7 +171,8 @@ public class RPXGUI extends JFrame {
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             outputFolderPath = folderChooser.getSelectedFile().getAbsolutePath();
             outputFolderField.setText(outputFolderPath);
-            pack();
+            outputFolderField.setToolTipText(outputFolderPath);
+            outputFolderField.setCaretPosition(0);
         }
     }
 
@@ -150,7 +199,6 @@ public class RPXGUI extends JFrame {
                 exportService.exportPlaylists(rekordboxPlaylistParamList, outputFolderPath);
                 JOptionPane.showMessageDialog(null, "Operation successfully done!", "Success",
                         JOptionPane.INFORMATION_MESSAGE);
-                panel.removeAll();
                 resetPanel();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(null, "An error occurred during operation: " + ex.getMessage(),
@@ -164,6 +212,7 @@ public class RPXGUI extends JFrame {
         panel.removeAll();
         initPanel();
         setSize(INITIAL_WIDTH, INITIAL_HEIGHT);
+        setLocationRelativeTo(null);
         revalidate();
         repaint();
         rekordboxPlaylistParamList.clear();
