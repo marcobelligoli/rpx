@@ -4,14 +4,13 @@ import lombok.Setter;
 
 import javax.swing.filechooser.FileSystemView;
 import java.io.File;
+import java.util.Locale;
 
 public class OsUtils {
 
     /**
      * -- SETTER --
      * Sets the system property provider. For testing purposes.
-     *
-     * @param provider The system property provider.
      */
     @Setter
     private static SystemPropertyProvider systemPropertyProvider = System::getProperty;
@@ -21,14 +20,20 @@ public class OsUtils {
     }
 
     /**
-     * Gets the Desktop path
+     * Gets the Desktop path, falling back to the home directory when no Desktop folder exists.
      *
      * @return Desktop path
      */
     public static String getDesktopPath() {
-        FileSystemView fileSystemView = FileSystemView.getFileSystemView();
-        File desktopDirectory = fileSystemView.getHomeDirectory();
-        return desktopDirectory.getAbsolutePath();
+        if (isWindows()) {
+            // On Windows the Desktop can be relocated (e.g. OneDrive) and FileSystemView resolves the real one
+            return FileSystemView.getFileSystemView().getHomeDirectory().getAbsolutePath();
+        }
+
+        // On macOS and Linux FileSystemView returns the home directory, so the Desktop is resolved explicitly
+        File homeDirectory = new File(systemPropertyProvider.getProperty("user.home"));
+        File desktopDirectory = new File(homeDirectory, "Desktop");
+        return desktopDirectory.isDirectory() ? desktopDirectory.getAbsolutePath() : homeDirectory.getAbsolutePath();
     }
 
     /**
@@ -37,7 +42,7 @@ public class OsUtils {
      * @return The name of the operating system in lowercase.
      */
     public static String getOperatingSystem() {
-        return systemPropertyProvider.getProperty("os.name").toLowerCase();
+        return systemPropertyProvider.getProperty("os.name").toLowerCase(Locale.ROOT);
     }
 
     /**

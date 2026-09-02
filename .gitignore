@@ -36,3 +36,4 @@ build/
 .DS_STORE
 
 launch4j
+.m2/

@@ -6,7 +6,26 @@
 
     <groupId>org.mb.tools</groupId>
     <artifactId>rpx</artifactId>
-    <version>0.1.0</version>
+    <version>1.0.0</version>
+
+    <name>RPX</name>
+    <description>Rekordbox Playlist Exporter</description>
+    <url>https://github.com/marcobelligoli/rpx</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/license/mit</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Marco Belligoli</name>
+            <url>https://github.com/marcobelligoli</url>
+        </developer>
+    </developers>
 
     <properties>
         <commons-io.version>2.15.1</commons-io.version>
@@ -16,6 +35,8 @@
         <junit-jupiter.version>5.11.0</junit-jupiter.version>
         <mockito.version>5.13.0</mockito.version>
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.5.3</maven-surefire-plugin.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <dependencies>
@@ -101,9 +122,13 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven-compiler-plugin.version}</version>
                 <configuration>
-                    <source>17</source>
-                    <target>17</target>
+                    <release>17</release>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
             </plugin>
         </plugins>
     </build>

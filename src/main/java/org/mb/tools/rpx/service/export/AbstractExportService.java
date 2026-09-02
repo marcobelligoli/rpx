@@ -9,6 +9,7 @@ import org.mb.tools.rpx.utils.OsUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -25,13 +26,16 @@ public abstract class AbstractExportService implements ExportService {
 
     @Override
     public void exportPlaylists(List<RekordboxPlaylistParam> playlistsToExport) {
-        try {
-            String desktopPath = OsUtils.getDesktopPath();
+        exportPlaylists(playlistsToExport, OsUtils.getDesktopPath());
+    }
 
+    @Override
+    public void exportPlaylists(List<RekordboxPlaylistParam> playlistsToExport, String destinationFolderPath) {
+        try {
             for (RekordboxPlaylistParam rekordboxPlaylistParam : playlistsToExport) {
 
                 String playlistName = getPlaylistName(rekordboxPlaylistParam);
-                String outputFolderPath = desktopPath + "\\" + playlistName;
+                String outputFolderPath = getOutputFolderPath(destinationFolderPath, playlistName);
 
                 exportPlaylist(playlistName, rekordboxPlaylistParam.getPlaylistPath(),
                         rekordboxPlaylistParam.isMaintainPlaylistOrder(), outputFolderPath);
@@ -45,18 +49,19 @@ public abstract class AbstractExportService implements ExportService {
         }
     }
 
-    private static String getPlaylistName(RekordboxPlaylistParam rekordboxPlaylistParam) {
-        String playlistName;
-        if (rekordboxPlaylistParam.getPlaylistPath().startsWith("/")) {
-            playlistName = rekordboxPlaylistParam.getPlaylistPath()
-                    .split("/")[rekordboxPlaylistParam.getPlaylistPath().split("/").length - 1]
-                    .split("\\.")[0];
-        } else {
-            playlistName = rekordboxPlaylistParam.getPlaylistPath()
-                    .split("\\\\")[rekordboxPlaylistParam.getPlaylistPath().split("\\\\").length - 1]
-                    .split("\\.")[0];
+    static String getOutputFolderPath(String destinationFolderPath, String playlistName) {
+        return Path.of(destinationFolderPath).resolve(playlistName).toString();
+    }
+
+    static String getPlaylistName(RekordboxPlaylistParam rekordboxPlaylistParam) {
+        String playlistPath = rekordboxPlaylistParam.getPlaylistPath();
+        String normalizedPath = playlistPath.replace('\\', '/');
+        String fileName = normalizedPath.substring(normalizedPath.lastIndexOf('/') + 1);
+        int extensionIndex = fileName.lastIndexOf('.');
+        if (extensionIndex <= 0) {
+            return fileName;
         }
-        return playlistName;
+        return fileName.substring(0, extensionIndex);
     }
 
     private void exportPlaylist(String playlistName, String playlistFilePath, boolean maintainOrder,
@@ -71,10 +76,12 @@ public abstract class AbstractExportService implements ExportService {
 
         // if not present, create it
         File playlistFolder = FileUtils.createFolderIfNotExists(outputFolderPath);
+        if (playlistFolder == null) {
+            throw new IOException("Impossible to create folder: " + outputFolderPath);
+        }
 
         for (RekordboxSong song : songs) {
-            String windowsPath = song.getFilePath().replace("/", "\\");
-            File songFile = new File(windowsPath);
+            File songFile = getFile(song);
             if (songFile.exists()) {
                 logInfo(String.format("Found file [%s]; copying...", songFile.getAbsolutePath()));
                 if (maintainOrder) {
@@ -89,8 +96,20 @@ public abstract class AbstractExportService implements ExportService {
         }
 
         // check on copied files
-        assert playlistFolder != null;
         checkSongsNumber(playlistFileLines, playlistFolder);
+    }
+
+    static File getFile(RekordboxSong song) {
+        String filePath = song.getFilePath();
+        File originalFile = new File(filePath);
+        if (originalFile.exists()) {
+            return originalFile;
+        }
+
+        String nativePath = filePath
+                .replace('\\', File.separatorChar)
+                .replace('/', File.separatorChar);
+        return new File(nativePath);
     }
 
     /**

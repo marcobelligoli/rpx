@@ -4,13 +4,13 @@ import org.mb.tools.rpx.model.RekordboxSong;
 import org.mb.tools.rpx.utils.FileUtils;
 
 import java.io.File;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Implementation of Export Service for txt files
@@ -22,8 +22,8 @@ public class ExportServiceTxtImpl extends AbstractExportService {
         List<RekordboxSong> songs = new ArrayList<>();
         FileUtils.changeFileEncoding(playlistFilePath);
         String playlistFileEncoding = FileUtils.getFileEncoding(new File(playlistFilePath));
-        List<String> playlistLines = FileUtils.readLinesFromFile(playlistFilePath, playlistFileEncoding != null ?
-                Charset.forName(playlistFileEncoding) : null);
+        List<String> playlistLines = FileUtils.readLinesFromFile(playlistFilePath,
+                FileUtils.toCharset(playlistFileEncoding));
 
         // remove headers
         playlistLines.remove(0);
@@ -67,7 +67,8 @@ public class ExportServiceTxtImpl extends AbstractExportService {
     }
 
     private static Date convertStringToDate(String dateString) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        // Locale.ROOT keeps the Gregorian calendar even under locales that default to another one (e.g. th-TH)
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
         try {
             return dateFormat.parse(dateString);
         } catch (ParseException e) {

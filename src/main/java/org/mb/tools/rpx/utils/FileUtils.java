@@ -28,7 +28,7 @@ public class FileUtils {
      * Reads all text file lines
      *
      * @param filePath      Path of file to read
-     * @param inputEncoding Input file encoding (optional)
+     * @param inputEncoding Input file encoding (UTF-8 is used when null)
      * @return List of read lines
      */
     public static List<String> readLinesFromFile(String filePath, Charset inputEncoding) {
@@ -115,10 +115,7 @@ public class FileUtils {
      * @param filePath file to change encoding
      */
     public static void changeFileEncoding(String filePath) {
-        String inputEncoding = getFileEncoding(new File(filePath));
-        Charset inputCharset = StandardCharsets.UTF_8;
-        if (inputEncoding != null && inputEncoding.equals("UTF-16LE"))
-            inputCharset = StandardCharsets.UTF_16LE;
+        Charset inputCharset = toCharset(getFileEncoding(new File(filePath)));
         List<String> lines = FileUtils.readLinesFromFile(filePath, inputCharset);
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(Files.newOutputStream(Paths.get(filePath)), StandardCharsets.UTF_8))) {
 
@@ -158,10 +155,27 @@ public class FileUtils {
         }
     }
 
+    /**
+     * Converts a detected encoding name into a Charset
+     *
+     * @param encoding Encoding name (as detected on the file), may be null
+     * @return Matching Charset, UTF-8 if the name is null or not supported on this platform
+     */
+    public static Charset toCharset(String encoding) {
+        if (encoding == null) {
+            return StandardCharsets.UTF_8;
+        }
+        try {
+            return Charset.forName(encoding);
+        } catch (IllegalArgumentException e) {
+            LogUtils.error(logger, String.format("Encoding [%s] is not supported, falling back to UTF-8", encoding));
+            return StandardCharsets.UTF_8;
+        }
+    }
+
     private static BufferedReader getFileReader(String filePath, Charset encoding) throws IOException {
-        if (encoding == null)
-            return new BufferedReader(new FileReader(filePath));
-        else
-            return new BufferedReader(new FileReader(filePath, encoding));
+        // never fall back to the platform default charset: it would make the same playlist
+        // decode differently on Windows, macOS and Linux
+        return new BufferedReader(new FileReader(filePath, encoding != null ? encoding : StandardCharsets.UTF_8));
     }
 }

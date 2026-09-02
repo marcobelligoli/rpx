@@ -1,0 +1,271 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  APP_NAME: RPX
+  MAIN_JAR: rpx-jar-with-dependencies.jar
+  MAIN_CLASS: org.mb.tools.rpx.RPX
+  APP_VENDOR: Marco Belligoli
+  APP_DESCRIPTION: RPX - Rekordbox Playlist Exporter
+  APP_COPYRIGHT: Copyright (c) Marco Belligoli
+  MAC_PACKAGE_ID: org.mb.tools.rpx
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build and test
+        run: mvn -B clean verify
+
+      - name: Name the jar after the tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: cp "target/$MAIN_JAR" "RPX-${{ github.ref_name }}.jar"
+
+      - name: Upload runnable jar
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: RPX-${{ github.ref_name }}-jar
+          path: RPX-${{ github.ref_name }}.jar
+          if-no-files-found: error
+
+  package:
+    name: Package ${{ matrix.platform }}
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-x64
+          - os: macos-latest
+            platform: macos-arm64
+          # Last Intel macOS image offered by GitHub Actions (available until August 2027).
+          - os: macos-15-intel
+            platform: macos-x64
+          - os: ubuntu-latest
+            platform: linux-x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Resolve bundle version
+        shell: bash
+        run: |
+          set -eo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          version="$(printf '%s' "$version" | grep -oE '^[0-9]+(\.[0-9]+){0,2}' || true)"
+          # jpackage rejects a zero major version on macOS (CFBundleVersion rule): tag from 1.0.0 upwards.
+          if [ -z "$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME must start with a numeric version, e.g. 1.0.0"
+            exit 1
+          fi
+          echo "APP_VERSION=$version" >> "$GITHUB_ENV"
+          echo "Tag $GITHUB_REF_NAME -> bundle version $version"
+
+      - name: Build jar
+        run: mvn -B clean package
+
+      - name: Stage jpackage input
+        shell: bash
+        run: |
+          set -eo pipefail
+          mkdir -p build/input
+          cp "target/$MAIN_JAR" build/input/
+
+      - name: Ensure WiX 3 is available (jpackage exe backend)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (Get-Command candle.exe -ErrorAction SilentlyContinue) {
+            Write-Host "WiX already on PATH: $((Get-Command candle.exe).Source)"
+            exit 0
+          }
+          # jpackage needs WiX 3 (candle.exe/light.exe). The "wixtoolset" package is the WiX 3 line;
+          # WiX 4+ ships separately as the "wix" .NET tool and is not compatible with jpackage.
+          choco install wixtoolset --no-progress -y
+          $candle = Get-ChildItem -Path ${env:ProgramFiles(x86)}, $env:ProgramFiles -Recurse -Filter candle.exe -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+          if (-not $candle) { throw 'WiX candle.exe not found after installation' }
+          Write-Host "Adding $($candle.DirectoryName) to PATH"
+          $candle.DirectoryName | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+      - name: Build macOS icon
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -eo pipefail
+          iconset=build/RPX.iconset
+          mkdir -p "$iconset"
+          for size in 16 32 128 256; do
+            sips -z "$size" "$size" packaging/RPX.png --out "$iconset/icon_${size}x${size}.png" > /dev/null
+            sips -z "$((size * 2))" "$((size * 2))" packaging/RPX.png --out "$iconset/icon_${size}x${size}@2x.png" > /dev/null
+          done
+          sips -z 512 512 packaging/RPX.png --out "$iconset/icon_512x512.png" > /dev/null
+          iconutil -c icns "$iconset" -o build/RPX.icns
+
+      - name: Resolve icon
+        shell: bash
+        run: |
+          set -eo pipefail
+          case "$RUNNER_OS" in
+            Windows) echo "ICON=packaging/RPX.ico" >> "$GITHUB_ENV" ;;
+            macOS) echo "ICON=build/RPX.icns" >> "$GITHUB_ENV" ;;
+            *) echo "ICON=packaging/RPX.png" >> "$GITHUB_ENV" ;;
+          esac
+
+      - name: Build app image
+        shell: bash
+        run: |
+          set -eo pipefail
+          extra=()
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            extra+=(--mac-package-identifier "$MAC_PACKAGE_ID" --mac-package-name "$APP_NAME")
+          fi
+          jpackage \
+            --type app-image \
+            --name "$APP_NAME" \
+            --app-version "$APP_VERSION" \
+            --input build/input \
+            --main-jar "$MAIN_JAR" \
+            --main-class "$MAIN_CLASS" \
+            --icon "$ICON" \
+            --vendor "$APP_VENDOR" \
+            --description "$APP_DESCRIPTION" \
+            --copyright "$APP_COPYRIGHT" \
+            --dest build/appimage \
+            "${extra[@]}"
+
+      - name: Build Windows installer
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          set -eo pipefail
+          jpackage \
+            --type exe \
+            --app-image build/appimage/RPX \
+            --name "$APP_NAME" \
+            --app-version "$APP_VERSION" \
+            --vendor "$APP_VENDOR" \
+            --description "$APP_DESCRIPTION" \
+            --copyright "$APP_COPYRIGHT" \
+            --win-dir-chooser \
+            --win-menu \
+            --win-shortcut \
+            --win-per-user-install \
+            --dest build/installer
+          mkdir -p artifacts
+          mv build/installer/*.exe "artifacts/RPX-$GITHUB_REF_NAME-${{ matrix.platform }}.exe"
+
+      - name: Archive Windows portable app
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          Compress-Archive -Path build\appimage\RPX -DestinationPath "artifacts\RPX-${{ github.ref_name }}-${{ matrix.platform }}-portable.zip"
+
+      - name: Build macOS installer
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -eo pipefail
+          jpackage \
+            --type dmg \
+            --app-image build/appimage/RPX.app \
+            --name "$APP_NAME" \
+            --app-version "$APP_VERSION" \
+            --vendor "$APP_VENDOR" \
+            --description "$APP_DESCRIPTION" \
+            --copyright "$APP_COPYRIGHT" \
+            --dest build/installer
+          mkdir -p artifacts
+          mv build/installer/*.dmg "artifacts/RPX-$GITHUB_REF_NAME-${{ matrix.platform }}.dmg"
+
+      - name: Archive Linux app
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -eo pipefail
+          mkdir -p artifacts
+          tar -czf "artifacts/RPX-$GITHUB_REF_NAME-${{ matrix.platform }}.tar.gz" -C build/appimage RPX
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RPX-${{ github.ref_name }}-${{ matrix.platform }}
+          path: artifacts/*
+          if-no-files-found: error
+
+  release:
+    name: Attach artifacts to the GitHub Release
+    needs: [ build, package ]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -eo pipefail
+          ls -lh artifacts
+          if gh release view "$GITHUB_REF_NAME" --repo "$REPO" > /dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists, uploading assets to it."
+            gh release upload "$GITHUB_REF_NAME" artifacts/* --clobber --repo "$REPO"
+          else
+            echo "Creating draft release $GITHUB_REF_NAME with the built assets."
+            gh release create "$GITHUB_REF_NAME" artifacts/* \
+              --repo "$REPO" \
+              --title "$GITHUB_REF_NAME" \
+              --generate-notes \
+              --draft
+          fi
