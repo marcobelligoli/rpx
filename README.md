@@ -7,14 +7,14 @@ Rekordbox, along with additional functionalities.
 
 Ready-to-use builds are published on the [project releases](https://github.com/marcobelligoli/rpx/releases):
 
-| File                                 | Platform            | Notes                                              |
-|--------------------------------------|---------------------|----------------------------------------------------|
+| File                                 | Platform            | Notes                                                |
+|--------------------------------------|---------------------|------------------------------------------------------|
 | `RPX-<tag>-windows-x64.exe`          | Windows             | Installer, per-user (no administrator rights needed) |
-| `RPX-<tag>-windows-x64-portable.zip` | Windows             | Portable app, unzip and run `RPX.exe`               |
-| `RPX-<tag>-macos-arm64.dmg`          | macOS Apple Silicon | Installer, drag RPX into Applications               |
-| `RPX-<tag>-macos-x64.dmg`            | macOS Intel         | Installer, drag RPX into Applications               |
-| `RPX-<tag>-linux-x64.tar.gz`         | Linux               | Portable app image                                  |
-| `RPX-<tag>.jar`                      | Any                 | Runnable JAR, requires Java 17+                     |
+| `RPX-<tag>-windows-x64-portable.zip` | Windows             | Portable app, unzip and run `RPX.exe`                |
+| `RPX-<tag>-macos-arm64.dmg`          | macOS Apple Silicon | Installer, drag RPX into Applications                |
+| `RPX-<tag>-macos-x64.dmg`            | macOS Intel         | Installer, drag RPX into Applications                |
+| `RPX-<tag>-linux-x64.tar.gz`         | Linux               | Portable app image                                   |
+| `RPX-<tag>.jar`                      | Any                 | Runnable JAR, requires Java 17+                      |
 
 Every platform bundle ships its own Java runtime, so no separate Java installation is needed. Only the JAR
 requires Java to be installed.
