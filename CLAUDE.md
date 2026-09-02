@@ -22,8 +22,8 @@ There is no Maven wrapper — a local `mvn` and JDK 17+ are required.
 
 ## Architecture
 
-**Entry point:** `RPX.main` only constructs and shows `RPXGUI`. All application logic hangs off the export
-service; there is no CLI mode.
+**Entry point:** `RPX.main` applies the system look and feel and shows `RPXGUI`, both on the Event Dispatch
+Thread. All application logic hangs off the export service; there is no CLI mode.
 
 **Export pipeline (template method).** `ExportService` (interface) → `AbstractExportService` (owns the whole
 orchestration: resolve output folder, copy files, verify count) → `ExportServiceTxtImpl` (only supplies
