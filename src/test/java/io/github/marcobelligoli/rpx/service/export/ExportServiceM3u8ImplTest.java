@@ -1,10 +1,10 @@
 package io.github.marcobelligoli.rpx.service.export;
 
+import io.github.marcobelligoli.rpx.model.RekordboxSong;
+import io.github.marcobelligoli.rpx.utils.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import io.github.marcobelligoli.rpx.model.RekordboxSong;
-import io.github.marcobelligoli.rpx.utils.FileUtils;
 import org.mockito.InjectMocks;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
