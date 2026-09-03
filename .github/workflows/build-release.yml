@@ -19,11 +19,11 @@ permissions:
 env:
   APP_NAME: RPX
   MAIN_JAR: rpx-jar-with-dependencies.jar
-  MAIN_CLASS: org.mb.tools.rpx.RPX
+  MAIN_CLASS: io.github.marcobelligoli.rpx.RPX
   APP_VENDOR: Marco Belligoli
   APP_DESCRIPTION: RPX - Rekordbox Playlist Exporter
   APP_COPYRIGHT: Copyright (c) Marco Belligoli
-  MAC_PACKAGE_ID: org.mb.tools.rpx
+  MAC_PACKAGE_ID: io.github.marcobelligoli.rpx
 
 jobs:
   build:
