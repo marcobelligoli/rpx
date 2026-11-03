@@ -105,8 +105,11 @@ When the workflow finishes:
 
 - if no release exists yet for the tag, a **draft** release is created with all the assets already attached — review
   it on GitHub, edit the notes and press *Publish release*;
-- if the release already exists, the assets are uploaded to it (with `--clobber`, so re-running the workflow
-  refreshes them).
+- if the draft already exists, the assets are uploaded to it (with `--clobber`, so re-running the workflow
+  refreshes them);
+- if the release is already published, the workflow fails instead of replacing assets users may have downloaded.
+
+Tags must be plain versions such as `1.2.0`, `v1.2.0` or `1.2.0-rc.1`.
 
 ### Packaging notes
 
@@ -127,7 +130,7 @@ When the workflow finishes:
 
 RPX is released under the [MIT License](LICENSE).
 
-The published artifacts bundle third-party components that keep their own licenses (Apache Commons, juniversalchardet,
+The published artifacts bundle third-party components that keep their own licenses (juniversalchardet
 and the Eclipse Temurin runtime embedded in the native installers):
 see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
