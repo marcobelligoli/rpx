@@ -85,6 +85,33 @@ class FileUtilsTest {
     }
 
     @Test
+    void testCopyAndRenameFileRefusesNameEscapingTheFolder() throws IOException {
+        File folder = new File(tempDirectory, "playlist");
+        assertTrue(folder.mkdir());
+        File escapedFile = new File(tempDirectory, "escaped.txt");
+
+        try {
+            assertThrows(IOException.class, () -> FileUtils.copyAndRenameFile(tempFile, folder, "../escaped.txt"));
+            assertThrows(IOException.class, () -> FileUtils.copyAndRenameFile(tempFile, folder, "sub/escaped.txt"));
+            assertFalse(escapedFile.exists());
+        } finally {
+            Files.deleteIfExists(escapedFile.toPath());
+            Files.deleteIfExists(folder.toPath());
+        }
+    }
+
+    @Test
+    void testIsNetworkPath() {
+        assertTrue(FileUtils.isNetworkPath("\\\\host\\share\\song.mp3"));
+        assertTrue(FileUtils.isNetworkPath("//host/share/song.mp3"));
+        assertTrue(FileUtils.isNetworkPath("  \\\\?\\C:\\Music\\song.mp3"));
+        assertFalse(FileUtils.isNetworkPath("C:\\Music\\song.mp3"));
+        assertFalse(FileUtils.isNetworkPath("D:/Music/song.mp3"));
+        assertFalse(FileUtils.isNetworkPath("/Users/marco/Music/song.mp3"));
+        assertFalse(FileUtils.isNetworkPath("Music/song.mp3"));
+    }
+
+    @Test
     void testGetFileEncodingForNonExistentFile() {
         File nonExistentFile = new File("nonExistentFile.txt");
         String encoding = FileUtils.getFileEncoding(nonExistentFile);

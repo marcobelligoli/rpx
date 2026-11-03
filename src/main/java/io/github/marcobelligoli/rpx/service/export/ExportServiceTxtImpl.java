@@ -1,5 +1,6 @@
 package io.github.marcobelligoli.rpx.service.export;
 
+import io.github.marcobelligoli.rpx.exception.RPXException;
 import io.github.marcobelligoli.rpx.model.RekordboxSong;
 import io.github.marcobelligoli.rpx.utils.FileUtils;
 
@@ -11,11 +12,14 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * Implementation of Export Service for txt files
  */
 public class ExportServiceTxtImpl extends AbstractExportService {
+
+    private static final Pattern TRACK_NUMBER_PATTERN = Pattern.compile("\\d{1,6}");
 
     @Override
     protected List<RekordboxSong> getRekordboxSongs(String playlistFilePath) {
@@ -32,7 +36,7 @@ public class ExportServiceTxtImpl extends AbstractExportService {
             if (!line.equals("\u0000")) {
                 List<String> fields = getCleanedLineItems(line, "\t");
                 RekordboxSong rekordboxSong = new RekordboxSong();
-                rekordboxSong.setTrackNumber(fields.get(0));
+                rekordboxSong.setTrackNumber(getTrackNumber(fields.get(0)));
                 rekordboxSong.setTitle(fixDoubleUTF8Encoding(fields.get(2)));
                 rekordboxSong.setBpm(convertDouble(fields.get(3)));
                 rekordboxSong.setYear(Integer.parseInt(fields.get(4)));
@@ -59,6 +63,15 @@ public class ExportServiceTxtImpl extends AbstractExportService {
             cleanedFields.add(newField);
         }
         return cleanedFields;
+    }
+
+    private static String getTrackNumber(String trackNumberField) {
+        // the track number becomes part of the copied file name, so anything but digits is refused
+        String trackNumber = trackNumberField.trim();
+        if (!TRACK_NUMBER_PATTERN.matcher(trackNumber).matches()) {
+            throw new RPXException(String.format("Invalid track number [%s]: only digits are allowed", trackNumber));
+        }
+        return trackNumber;
     }
 
     private static Double convertDouble(String doubleString) {

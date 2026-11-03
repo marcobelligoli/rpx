@@ -82,11 +82,9 @@ public class FileUtils {
             return;
         }
 
-        File newFile = new File(destinationFolder, newFileName);
-        Path sourcePath = sourceFile.toPath();
-        Path destinationPath = newFile.toPath();
-        Files.copy(sourcePath, destinationPath, StandardCopyOption.REPLACE_EXISTING);
-        LogUtils.info(logger, String.format("File copied and renamed successfully: %s", newFile.getAbsolutePath()));
+        Path destinationPath = resolveInsideFolder(destinationFolder, newFileName);
+        Files.copy(sourceFile.toPath(), destinationPath, StandardCopyOption.REPLACE_EXISTING);
+        LogUtils.info(logger, String.format("File copied and renamed successfully: %s", destinationPath));
     }
 
     /**
@@ -101,12 +99,41 @@ public class FileUtils {
             return;
         }
 
-        File destinationFile = new File(destinationDirectory, sourceFile.getName());
+        Path destinationPath = resolveInsideFolder(destinationDirectory, sourceFile.getName());
+        Files.copy(sourceFile.toPath(), destinationPath, StandardCopyOption.REPLACE_EXISTING);
+        LogUtils.info(logger, String.format("File copied successfully: %s", destinationPath));
+    }
 
-        Path sourcePath = sourceFile.toPath();
-        Path destinationPath = destinationFile.toPath();
-        Files.copy(sourcePath, destinationPath, StandardCopyOption.REPLACE_EXISTING);
-        LogUtils.info(logger, String.format("File copied successfully: %s", destinationFile.getAbsolutePath()));
+    /**
+     * Resolves a file name against a folder, refusing any name that would place the file anywhere but directly
+     * inside that folder (e.g. names containing path separators or "..")
+     *
+     * @param folder   Folder the file must be created in
+     * @param fileName Name of the file
+     * @return Normalized destination path, a direct child of the folder
+     * @throws IOException if the name escapes the folder
+     */
+    static Path resolveInsideFolder(File folder, String fileName) throws IOException {
+        Path folderPath = folder.toPath().toAbsolutePath().normalize();
+        Path destinationPath = folderPath.resolve(fileName).normalize();
+        if (!folderPath.equals(destinationPath.getParent())) {
+            throw new IOException(String.format("File name [%s] would be written outside the folder [%s]",
+                    fileName, folderPath));
+        }
+        return destinationPath;
+    }
+
+    /**
+     * Checks if a path points to a network location (UNC path such as \\host\share or //host/share).
+     * Opening such a path can make the operating system connect, and authenticate, to the remote host.
+     *
+     * @param path Path to check
+     * @return True if the path is a network path
+     */
+    public static boolean isNetworkPath(String path) {
+        String trimmedPath = path.trim();
+        return trimmedPath.startsWith("\\\\") || trimmedPath.startsWith("//")
+                || trimmedPath.startsWith("\\/") || trimmedPath.startsWith("/\\");
     }
 
     /**

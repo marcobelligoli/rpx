@@ -81,6 +81,11 @@ public abstract class AbstractExportService implements ExportService {
         }
 
         for (RekordboxSong song : songs) {
+            // checked before touching the path: even probing a network path can connect to the remote host
+            if (FileUtils.isNetworkPath(song.getFilePath())) {
+                logError(String.format("File [%s] is on a network path and will not be copied", song.getFilePath()));
+                continue;
+            }
             File songFile = getFile(song);
             if (songFile.exists()) {
                 logInfo(String.format("Found file [%s]; copying...", songFile.getAbsolutePath()));

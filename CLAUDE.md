@@ -48,7 +48,9 @@ even in tests that pass an explicit destination, so a regression cannot write in
 against the number of files with an audio extension (`AUDIO_FORMATS`) present in the output folder, and throws
 `RPXException` on mismatch. Because it counts everything in the folder, a re-export into an existing folder or
 stray audio files there will change the result. Missing source files are logged and skipped, so they surface as
-this mismatch rather than as an immediate error.
+this mismatch rather than as an immediate error. Network (UNC) source paths — `\\host\share\…` or `//host/share/…`,
+see `FileUtils.isNetworkPath` — are skipped the same way, and *before* any `exists()` call: playlists come from
+third parties, and merely probing such a path can make Windows connect and authenticate (NTLM) to the remote host.
 
 **Encoding handling (txt format).** Rekordbox exports are typically UTF-16LE. `ExportServiceTxtImpl` calls
 `FileUtils.changeFileEncoding` first, which **rewrites the user's playlist file in place as UTF-8** — a
@@ -67,7 +69,10 @@ in the file, since the format has no such column, and only `trackNumber` and `fi
 `RekordboxSong` — they are the only fields the export actually uses.
 
 **Track ordering.** When "Keep tracks order" is checked, files are copied as `<trackNumber> - <original name>`;
-`RekordboxSong.setTrackNumber` zero-pads to three digits so lexical sort matches playlist order.
+`RekordboxSong.setTrackNumber` zero-pads to three digits so lexical sort matches playlist order. The track number
+ends up in a file name, so the txt parser accepts digits only, and `FileUtils.resolveInsideFolder` makes both copy
+methods refuse any destination that is not a direct child of the playlist folder (a `../` in a third-party playlist
+would otherwise write outside it).
 
 **Errors.** Everything thrown out of `exportPlaylists` is wrapped in `RPXException` (a `RuntimeException`) and
 surfaced by `RPXGUI` as a `JOptionPane` dialog. Logging goes through `LogUtils` over `java.util.logging`.

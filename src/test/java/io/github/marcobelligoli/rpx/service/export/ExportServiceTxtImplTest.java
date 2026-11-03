@@ -1,5 +1,6 @@
 package io.github.marcobelligoli.rpx.service.export;
 
+import io.github.marcobelligoli.rpx.exception.RPXException;
 import io.github.marcobelligoli.rpx.model.RekordboxSong;
 import io.github.marcobelligoli.rpx.utils.FileUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -92,6 +93,22 @@ class ExportServiceTxtImplTest {
             assertEquals("", song.getPersonalTag());
             assertEquals("", song.getKey());
             assertNull(song.getAddDate());
+        }
+    }
+
+    @Test
+    void testGetRekordboxSongsRefusesNonNumericTrackNumber() {
+        try (MockedStatic<FileUtils> mockedFileUtils = mockStatic(FileUtils.class)) {
+            mockedFileUtils.when(() -> FileUtils.getFileEncoding(any(File.class)))
+                    .thenReturn(StandardCharsets.UTF_8.name());
+            List<String> lines = getFileLines(true, true);
+            lines.set(1, lines.get(1).replaceFirst("^1\t", "../../escaped\t"));
+            mockedFileUtils.when(() -> FileUtils.readLinesFromFile(Mockito.eq(TEST_FILE_PATH), any()))
+                    .thenReturn(lines);
+
+            RPXException exception = assertThrows(RPXException.class,
+                    () -> exportService.getRekordboxSongs(TEST_FILE_PATH));
+            assertTrue(exception.getMessage().contains("../../escaped"));
         }
     }
 
