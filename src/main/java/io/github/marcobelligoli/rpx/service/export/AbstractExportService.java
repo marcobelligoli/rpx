@@ -10,6 +10,7 @@ import io.github.marcobelligoli.rpx.utils.OsUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -21,6 +22,8 @@ import java.util.logging.Logger;
 public abstract class AbstractExportService implements ExportService {
 
     private static final String[] AUDIO_FORMATS = {".mp3", ".wav", ".flac", ".aac", ".ogg", ".wma", ".m4a"};
+
+    private static final int MAX_SHOWN_PROBLEMS = 5;
 
     private static final Logger logger = Logger.getLogger(AbstractExportService.class.getName());
 
@@ -71,8 +74,10 @@ public abstract class AbstractExportService implements ExportService {
         // total file lines without headers
         int playlistFileLines = songs.size();
 
-        // copy list of RekordboxSong in final folder
         logInfo(String.format("Got %d songs from playlist %s", songs.size(), playlistName));
+
+        // every row is checked before the first copy, so that a playlist with problems leaves nothing half exported
+        List<File> songFiles = getSongFiles(songs, playlistName);
 
         // if not present, create it
         File playlistFolder = FileUtils.createFolderIfNotExists(outputFolderPath);
@@ -80,23 +85,59 @@ public abstract class AbstractExportService implements ExportService {
             throw new IOException("Impossible to create folder: " + outputFolderPath);
         }
 
-        for (RekordboxSong song : songs) {
-            File songFile = getFile(song);
-            if (songFile.exists()) {
-                logInfo(String.format("Found file [%s]; copying...", songFile.getAbsolutePath()));
-                if (maintainOrder) {
-                    String newName = song.getTrackNumber() + " - " + songFile.getName();
-                    FileUtils.copyAndRenameFile(songFile, playlistFolder, newName);
-                } else {
-                    FileUtils.copyFile(songFile, playlistFolder);
-                }
+        for (int i = 0; i < songs.size(); i++) {
+            File songFile = songFiles.get(i);
+            logInfo(String.format("Found file [%s]; copying...", songFile.getAbsolutePath()));
+            if (maintainOrder) {
+                String newName = songs.get(i).getTrackNumber() + " - " + songFile.getName();
+                FileUtils.copyAndRenameFile(songFile, playlistFolder, newName);
             } else {
-                logInfo(String.format("File [%s] not found", songFile.getAbsolutePath()));
+                FileUtils.copyFile(songFile, playlistFolder);
             }
         }
 
         // check on copied files
         checkSongsNumber(playlistFileLines, playlistFolder);
+    }
+
+    /**
+     * Resolves the file of every song, refusing the whole playlist if any of them is on a network path, is not an
+     * audio file or does not exist
+     *
+     * @param songs        Songs of the playlist
+     * @param playlistName Name of the playlist, for the error message
+     * @return Files to copy, in the same order as the songs
+     */
+    private static List<File> getSongFiles(List<RekordboxSong> songs, String playlistName) {
+        List<File> songFiles = new ArrayList<>();
+        List<String> problems = new ArrayList<>();
+
+        for (RekordboxSong song : songs) {
+            String filePath = song.getFilePath();
+            // checked before touching the path: even probing a network path can connect to the remote host
+            if (FileUtils.isNetworkPath(filePath)) {
+                problems.add(String.format("[%s] is on a network path", filePath));
+            } else if (!isAudioFile(filePath)) {
+                problems.add(String.format("[%s] is not an audio file", filePath));
+            } else {
+                File songFile = getFile(song);
+                if (songFile.isFile()) {
+                    songFiles.add(songFile);
+                } else {
+                    problems.add(String.format("[%s] not found", songFile.getAbsolutePath()));
+                }
+            }
+        }
+
+        if (!problems.isEmpty()) {
+            problems.forEach(AbstractExportService::logError);
+            String shownProblems = String.join("; ", problems.subList(0, Math.min(problems.size(), MAX_SHOWN_PROBLEMS)));
+            String hiddenProblems = problems.size() > MAX_SHOWN_PROBLEMS
+                    ? String.format(" and %d more (see log)", problems.size() - MAX_SHOWN_PROBLEMS) : "";
+            throw new RPXException(String.format("Playlist %s not exported, no file was copied. %d problem(s): %s%s",
+                    playlistName, problems.size(), shownProblems, hiddenProblems));
+        }
+        return songFiles;
     }
 
     static File getFile(RekordboxSong song) {
