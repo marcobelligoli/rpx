@@ -210,7 +210,63 @@ class AbstractExportServiceTest {
 
             RPXException exception = assertThrows(RPXException.class,
                     () -> service.exportPlaylists(playlistsToExport, chosenFolder.toFile().getAbsolutePath()));
-            assertTrue(exception.getMessage().contains("total file copied [0]"));
+            assertTrue(exception.getMessage().contains("is on a network path"));
+            assertFalse(chosenFolder.resolve("test").toFile().exists());
+        }
+    }
+
+    @Test
+    void testExportPlaylistsRefusesNonAudioFiles(@TempDir Path chosenFolder) throws IOException {
+
+        try (MockedStatic<OsUtils> mockedOsUtils = mockStatic(OsUtils.class)) {
+            mockedOsUtils.when(OsUtils::getDesktopPath).thenReturn(desktop.toFile().getAbsolutePath());
+
+            List<RekordboxPlaylistParam> playlistsToExport = new ArrayList<>();
+            RekordboxPlaylistParam param = new RekordboxPlaylistParam();
+            param.setPlaylistPath(getPath("test.txt"));
+            param.setMaintainPlaylistOrder(false);
+            playlistsToExport.add(param);
+
+            File document = Files.createFile(desktop.resolve("secret.pdf")).toFile();
+            TestExportService service = new TestExportService("1", document.getAbsolutePath());
+
+            RPXException exception = assertThrows(RPXException.class,
+                    () -> service.exportPlaylists(playlistsToExport, chosenFolder.toFile().getAbsolutePath()));
+            assertTrue(exception.getMessage().contains("is not an audio file"));
+            assertFalse(chosenFolder.resolve("test").toFile().exists());
+        }
+    }
+
+    @Test
+    void testExportPlaylistsCopiesNothingWhenAnySongIsMissing(@TempDir Path chosenFolder) {
+
+        try (MockedStatic<OsUtils> mockedOsUtils = mockStatic(OsUtils.class)) {
+            mockedOsUtils.when(OsUtils::getDesktopPath).thenReturn(desktop.toFile().getAbsolutePath());
+
+            List<RekordboxPlaylistParam> playlistsToExport = new ArrayList<>();
+            RekordboxPlaylistParam param = new RekordboxPlaylistParam();
+            param.setPlaylistPath(getPath("test.txt"));
+            param.setMaintainPlaylistOrder(false);
+            playlistsToExport.add(param);
+
+            String missingSong = desktop.resolve("missing.mp3").toString();
+            AbstractExportService service = new AbstractExportService() {
+                @Override
+                protected List<RekordboxSong> getRekordboxSongs(String playlistFilePath) {
+                    RekordboxSong existing = new RekordboxSong();
+                    existing.setTrackNumber("1");
+                    existing.setFilePath(songFile.getAbsolutePath());
+                    RekordboxSong missing = new RekordboxSong();
+                    missing.setTrackNumber("2");
+                    missing.setFilePath(missingSong);
+                    return List.of(existing, missing);
+                }
+            };
+
+            RPXException exception = assertThrows(RPXException.class,
+                    () -> service.exportPlaylists(playlistsToExport, chosenFolder.toFile().getAbsolutePath()));
+            assertTrue(exception.getMessage().contains("not found"));
+            assertFalse(chosenFolder.resolve("test").resolve("song.mp3").toFile().exists());
         }
     }
 

@@ -5,6 +5,7 @@ import org.mozilla.universalchardet.UniversalDetector;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,17 +33,22 @@ public class FileUtils {
      * @return List of read lines
      */
     public static List<String> readLinesFromFile(String filePath, Charset inputEncoding) {
-        List<String> lines = new ArrayList<>();
+        try {
+            return readLines(filePath, inputEncoding);
+        } catch (IOException e) {
+            LogUtils.error(logger, e.getMessage());
+            return new ArrayList<>();
+        }
+    }
 
+    private static List<String> readLines(String filePath, Charset inputEncoding) throws IOException {
+        List<String> lines = new ArrayList<>();
         try (BufferedReader reader = getFileReader(filePath, inputEncoding)) {
             String line;
             while ((line = reader.readLine()) != null) {
                 lines.add(line);
             }
-        } catch (IOException e) {
-            LogUtils.error(logger, e.getMessage());
         }
-
         return lines;
     }
 
@@ -137,21 +143,62 @@ public class FileUtils {
     }
 
     /**
-     * Changes file encoding to UTF-8
+     * Changes file encoding to UTF-8. The file is left untouched when it is already UTF-8 or cannot be read, and it
+     * is replaced atomically, so that a failure never leaves it truncated.
      *
      * @param filePath file to change encoding
      */
     public static void changeFileEncoding(String filePath) {
         Charset inputCharset = toCharset(getFileEncoding(new File(filePath)));
-        List<String> lines = FileUtils.readLinesFromFile(filePath, inputCharset);
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(Files.newOutputStream(Paths.get(filePath)), StandardCharsets.UTF_8))) {
+        if (StandardCharsets.UTF_8.equals(inputCharset)) {
+            return;
+        }
 
-            for (String line : lines) {
-                writer.write(line);
-                writer.newLine();
-            }
+        List<String> lines;
+        try {
+            lines = readLines(filePath, inputCharset);
         } catch (IOException e) {
-            LogUtils.error(logger, e.getMessage());
+            LogUtils.error(logger, String.format("Impossible to read [%s], its encoding is not changed: %s",
+                    filePath, e.getMessage()));
+            return;
+        }
+
+        Path targetPath = Paths.get(filePath).toAbsolutePath();
+        Path tempPath = null;
+        try {
+            // the temporary file is a sibling of the target, so that the final move stays on the same file system
+            tempPath = Files.createTempFile(targetPath.getParent(), targetPath.getFileName().toString(), ".tmp");
+            try (BufferedWriter writer = Files.newBufferedWriter(tempPath, StandardCharsets.UTF_8)) {
+                for (String line : lines) {
+                    writer.write(line);
+                    writer.newLine();
+                }
+            }
+            replaceFile(tempPath, targetPath);
+        } catch (IOException e) {
+            LogUtils.error(logger, String.format("Impossible to change the encoding of [%s]: %s",
+                    filePath, e.getMessage()));
+        } finally {
+            deleteQuietly(tempPath);
+        }
+    }
+
+    private static void replaceFile(Path source, Path target) throws IOException {
+        try {
+            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private static void deleteQuietly(Path path) {
+        if (path == null) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            LogUtils.error(logger, String.format("Impossible to delete temporary file [%s]", path));
         }
     }
 

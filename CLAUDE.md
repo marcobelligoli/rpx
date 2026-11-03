@@ -44,17 +44,24 @@ but the plain home directory on macOS and Linux, where the Desktop is resolved f
 `AbstractExportServiceTest` mocks the method statically rather than touching the real Desktop — keep that mock
 even in tests that pass an explicit destination, so a regression cannot write into the developer's own Desktop.
 
-**Post-copy verification.** `AbstractExportService.checkSongsNumber` compares the number of parsed playlist rows
-against the number of files with an audio extension (`AUDIO_FORMATS`) present in the output folder, and throws
-`RPXException` on mismatch. Because it counts everything in the folder, a re-export into an existing folder or
-stray audio files there will change the result. Missing source files are logged and skipped, so they surface as
-this mismatch rather than as an immediate error. Network (UNC) source paths — `\\host\share\…` or `//host/share/…`,
-see `FileUtils.isNetworkPath` — are skipped the same way, and *before* any `exists()` call: playlists come from
-third parties, and merely probing such a path can make Windows connect and authenticate (NTLM) to the remote host.
+**Pre-copy validation.** Playlists may come from third parties, so `AbstractExportService.getSongFiles` checks
+every row before the first copy and refuses the whole playlist — no folder created, nothing copied — with one
+`RPXException` listing the problems (the first `MAX_SHOWN_PROBLEMS` in the message, all of them in the log). A row
+is refused when its path is a network (UNC) path (`\\host\share\…` or `//host/share/…`, see
+`FileUtils.isNetworkPath`), has no audio extension (`AUDIO_FORMATS`), or does not exist. The network check comes
+*before* any `exists()` call, because merely probing such a path can make Windows connect and authenticate (NTLM)
+to the remote host; libraries on a NAS work only through a mapped drive letter.
+
+**Post-copy verification.** `AbstractExportService.checkSongsNumber` then compares the number of parsed playlist
+rows against the number of files with an audio extension present in the output folder, and throws `RPXException`
+on mismatch. Because it counts everything in the folder, a re-export into an existing folder or stray audio files
+there will change the result.
 
 **Encoding handling (txt format).** Rekordbox exports are typically UTF-16LE. `ExportServiceTxtImpl` calls
 `FileUtils.changeFileEncoding` first, which **rewrites the user's playlist file in place as UTF-8** — a
-deliberate but destructive side effect on the input file. Encoding is detected with juniversalchardet and mapped
+deliberate side effect on the input file. It is skipped when the file is already UTF-8 (or undetected) or cannot be
+read, and the new content is written to a sibling temp file and then moved over the original (atomically where the
+file system allows), so a failure never truncates the playlist. Encoding is detected with juniversalchardet and mapped
 through `FileUtils.toCharset`, which falls back to UTF-8 for an undetected or unsupported charset; the platform
 default charset is deliberately never used, since it differs between Windows and macOS/Linux on JDK 17 and would
 decode the same playlist differently. Parsing then strips embedded NUL characters, splits on
@@ -108,8 +115,15 @@ single jpackage app build per platform. Constraints worth knowing before editing
   jpackage cannot cross-build architectures, hence the two separate macOS legs.
 - **Icons** are tracked in `packaging/` (`RPX.ico` for Windows, `RPX.png` for Linux, both copied from the old
   launch4j assets). The macOS `.icns` is generated on the runner from the PNG via `sips` + `iconutil`.
-- **Release step** is idempotent: it creates a *draft* release with the assets when none exists for the tag, and
-  otherwise uploads with `--clobber`. It is the only job with `contents: write`.
+- **Release step**: it creates a *draft* release with the assets when none exists for the tag, re-uploads with
+  `--clobber` while the release is still a draft, and **fails** if the release is already published, so published
+  assets are never replaced. It is the only job with `contents: write`.
+- **Tag names** are validated by the first step of `build` (`v?MAJOR[.MINOR[.PATCH]][-+suffix]`). Inside `run:`
+  scripts the tag is always read from `$GITHUB_REF_NAME`, never interpolated as `${{ github.ref_name }}`, which would
+  splice it into the script text; `${{ }}` stays only in `with:` inputs.
+- **Pinning.** Actions are pinned to full commit SHAs with the version in a comment, `wixtoolset` to an exact
+  Chocolatey package version, and every Maven plugin to an explicit version. Update them deliberately, keeping the
+  comment in sync with the SHA.
 
 Bundles are unsigned and not notarized, so SmartScreen/Gatekeeper warn on first launch (documented in the README).
 
