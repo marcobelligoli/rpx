@@ -125,6 +125,13 @@ single jpackage app build per platform. Constraints worth knowing before editing
   Chocolatey package version, and every Maven plugin to an explicit version. Update them deliberately, keeping the
   comment in sync with the SHA.
 
+**Dependabot** (`.github/dependabot.yml`) opens weekly PRs against `develop` for Maven dependencies/plugins and for
+GitHub Actions (it updates the pinned SHA and its version comment together; the Chocolatey `wixtoolset` pin is not
+covered). `dependabot-auto-merge.yml` enables squash auto-merge only for `semver-patch` updates; GitHub merges them
+once the `Build and test` check passes, which `develop`'s branch protection requires (admins can still push
+directly). Minor and major updates stay open for review. Merges done with `GITHUB_TOKEN` do not trigger a new push
+build on `develop`.
+
 Bundles are unsigned and not notarized, so SmartScreen/Gatekeeper warn on first launch (documented in the README).
 
 `launch4j/` and `dist/` are leftovers from the pre-`jpackage` Windows packaging and are gitignored; do not treat
