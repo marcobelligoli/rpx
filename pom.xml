@@ -28,7 +28,7 @@
     </developers>
 
     <properties>
-        <lombok.version>1.18.30</lombok.version>
+        <lombok.version>1.18.48</lombok.version>
         <universal.chardet.version>1.0.3</universal.chardet.version>
         <junit-jupiter.version>5.11.0</junit-jupiter.version>
         <mockito.version>5.13.0</mockito.version>
